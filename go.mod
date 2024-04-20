@@ -1,4 +1,4 @@
-module fingerprinting
+module github.com/theodorsm/dtls-webrtc-fingerprint
 
 go 1.22.2
 
