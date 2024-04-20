@@ -1,0 +1,131 @@
+name: Fingerprinting
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+# on:
+#   schedule:
+#     - cron: "30 5 * * *"
+#
+
+jobs:
+  handshake-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, chrome]
+        bver: ['stable']
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install tshark
+      run: sudo apt install -y tshark
+
+    - uses: actions/setup-node@v3
+
+    - run: npm install
+      working-directory: browser-test/
+
+    - name: Install browser version
+      run: BROWSER=${{matrix.browser}} BVER=${{matrix.bver}} ./node_modules/travis-multirunner/setup.sh
+      working-directory: browser-test/
+
+    - name: Remove preinstalled github chromedriver/geckodriver from $PATH
+      run: sudo rm /usr/bin/chromedriver /usr/bin/geckodriver
+
+    - run: Xvfb :99 &
+
+    - name: Get browser version
+      id: "browser"
+      run: echo "version=$(./browsers/bin/${{matrix.browser}}-${{matrix.bver}} --version | sed -e 's/ /_/g' -e 's/\./_/g' -e 's/\-/_/g')" >> $GITHUB_OUTPUT
+      working-directory: browser-test/
+
+    - name: Create directory for pcaps
+      run: |
+        mkdir ./captures/
+        touch ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+        sudo chown -R root:root ./captures
+        ls -lga ./captures
+    - name: Start tshark capture
+      run: sudo tshark -i any -w ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap -f "udp" &
+
+    - name: Run webrtc applications with jest/selenium
+      run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node_modules/.bin/jest --retries=3 interop
+      working-directory: browser-test/
+
+    - name: Kill tshark capture
+      run: sudo killall tshark 1> /dev/null 2> /dev/null
+      continue-on-error: true
+
+    - name: Filter DTLS handshake in pcap
+      run: sudo tshark -r ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap -Y "dtls.handshake" -w ./captures/capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+
+    - name: Archive pcap
+      uses: actions/upload-artifact@v4
+      with:
+        name: fingerprint-pcap-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+        path: ./captures/capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+
+  commit-fingerprints:
+    needs: handshake-capture
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Create fingerprint directory
+        run: |
+          mkdir -p ./fingerprints-captures
+          mkdir -p ${{ runner.temp }}/fingerprints-captures
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/fingerprints-captures
+          pattern: fingerprint-pcap-*
+          merge-multiple: true
+
+      - name: Install libpcap
+        run: sudo apt install libpcap-dev
+
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Run pcap fingerprint parser
+        run: |
+          go get .
+          go run main.go ${{ runner.temp }}/fingerprints-captures
+
+      - name: Run gofmt on fingerprints.go
+        run: gofmt -s -w ./pkg/fingerprints/fingerprints.go
+
+      - name: Move new fingerprints to repo
+        run: |
+          mv ${{ runner.temp }}/fingerprints-captures/* ./fingerprints-captures/
+          ls -R fingerprints-captures
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.56.2
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: $GOLANGCI_LINT_EXRA_ARGS
+
+      - name: Commit fingerprints
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ./fingerprints-captures
+          git add ./pkg/fingerprints/fingerprints.go
+          git commit -m "Add fresh fingerprints"
+          git push
