@@ -21,7 +21,7 @@ type MimickedClientHello struct {
 	SRTPProtectionProfiles []extension.SRTPProtectionProfile
 }
 
-func (m *MimickedClientHello) hook(random handshake.Random, sessionID []byte, cookie []byte) *MimickedClientHello {
+func (m *MimickedClientHello) Hook(random handshake.Random, sessionID []byte, cookie []byte) *MimickedClientHello {
 	m.Random = random
 	m.SessionID = sessionID
 	m.Cookie = cookie
