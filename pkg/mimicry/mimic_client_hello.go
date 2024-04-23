@@ -11,7 +11,7 @@ import (
 
 var errBufferTooSmall = errors.New("buffer is too small") //nolint:goerr113
 
-//nolint:revive
+// MimickedClientHello is to be used as a way to replay DTLS client hello messages. To be used with the Pion dtls library.
 type MimickedClientHello struct {
 	clientHelloFingerprint fingerprints.ClientHelloFingerprint
 	Random                 handshake.Random
@@ -40,7 +40,10 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 	if err != nil {
 		return errors.New("mimicry: failed to decode mimicry hexstring") //nolint:goerr113
 	}
-	clientHello.Unmarshal(data)
+	err = clientHello.Unmarshal(data)
+	if err != nil {
+		return err
+	}
 	m.Extensions = clientHello.Extensions
 	for _, ext := range m.Extensions {
 		if ext.TypeValue() == extension.UseSRTPTypeValue {
