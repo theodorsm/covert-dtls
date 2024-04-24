@@ -36,20 +36,29 @@ func appendFingerprint(fingerprint string, version string) error {
 	fileScanner.Split(bufio.ScanLines)
 
 	var isDone bool
+	var hasVersion bool
 
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
 
-		if line == ")" {
+		if line == ")" && !hasVersion {
 			fileStrings = append(fileStrings, fmt.Sprintf("	%s ClientHelloFingerprint = \"%s\" //nolint:revive,stylecheck", version, fingerprint))
-			fileStrings = append(fileStrings, line)
-		} else if strings.Contains(line, "}") && !isDone {
+		} else if strings.Contains(line, "}") && !isDone && !hasVersion {
 			fileStrings = append(fileStrings, fmt.Sprintf("		%s, //nolint:revive,stylecheck", version))
-			fileStrings = append(fileStrings, line)
 			isDone = true
-		} else if !strings.Contains(line, version) {
-			fileStrings = append(fileStrings, line)
+		} else if strings.Contains(line, "ClientHelloFingerprint =") {
+			slist := strings.Split(line, "ClientHelloFingerprint")
+			if len(slist) > 1 {
+				fversion := slist[0]
+				fversion = strings.Trim(fversion, " ")
+				fversion = strings.Trim(fversion, "\t")
+				fmt.Println(fversion)
+				if fversion == version {
+					hasVersion = true
+				}
+			}
 		}
+		fileStrings = append(fileStrings, line)
 	}
 
 	readFile.Close()
