@@ -1,0 +1,34 @@
+name: Lint
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+
+permissions:
+  contents: read
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Install libpcap
+        run: sudo apt install libpcap-dev
+
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.19'
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.56.2
+          skip-pkg-cache: true
+          skip-build-cache: true

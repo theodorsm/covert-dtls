@@ -6,7 +6,7 @@ import (
 
 	"github.com/pion/dtls/v2/pkg/protocol/extension"
 	"github.com/pion/dtls/v2/pkg/protocol/handshake"
-	"github.com/theodorsm/dtls-webrtc-fingerprint/pkg/fingerprints"
+	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
 )
 
 var errBufferTooSmall = errors.New("buffer is too small") //nolint:goerr113
