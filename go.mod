@@ -1,4 +1,4 @@
-module github.com/theodorsm/dtls-webrtc-fingerprint
+module github.com/theodorsm/covert-dtls
 
 go 1.19
 
