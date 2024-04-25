@@ -101,11 +101,6 @@ jobs:
       - name: Run gofmt on fingerprints.go
         run: gofmt -s -w ./pkg/fingerprints/fingerprints.go
 
-      - name: Move new fingerprints to repo
-        run: |
-          mv ${{ runner.temp }}/fingerprints-captures/* ./fingerprints-captures/
-          ls -R fingerprints-captures
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
@@ -116,9 +111,16 @@ jobs:
 
       - name: Commit fingerprints
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add ./fingerprints-captures
-          git add ./pkg/fingerprints/fingerprints.go
-          git commit -m "Add fresh fingerprints"
-          git push
+          FILE="capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap"
+          if [ -e ./fingerprints-captures/"$FILE" ]; then
+            echo "pcap $FILE already exists"
+          else 
+            mv ${{ runner.temp }}/fingerprints-captures/* ./fingerprints-captures/
+            ls -R fingerprints-captures
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git add ./fingerprints-captures
+            git add ./pkg/fingerprints/fingerprints.go
+            git commit -m "Add fresh fingerprints"
+            git push
+          fi
