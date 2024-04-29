@@ -118,8 +118,8 @@ jobs:
           ls -R ./fingerprints-captures
           for file in ${{ runner.temp }}/fingerprints-captures/*; do
             if ! [[ -f ./fingerprints-captures/"${file##*/}" ]]; then
-              mv ${{ runner.temp }}/fingerprints-captures/"$file" ./fingerprints-captures/
-              git add ./fingerprints-captures/"$file"
+              mv ${{ runner.temp }}/fingerprints-captures/"${file##*/}" ./fingerprints-captures/
+              git add ./fingerprints-captures/"${file##*/}"
             fi
           done
           git commit -m "Add fresh fingerprints"
