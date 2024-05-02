@@ -9,7 +9,11 @@ import (
 	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
 )
 
-var errBufferTooSmall = errors.New("buffer is too small") //nolint:goerr113
+var (
+	errBufferTooSmall  = errors.New("buffer is too small")
+	errNoFingerprints  = errors.New("no fingerprints available")
+	errHexstringDecode = errors.New("mimicry: failed to decode mimicry hexstring")
+)
 
 // MimickedClientHello is to be used as a way to replay DTLS client hello messages. To be used with the Pion dtls library.
 type MimickedClientHello struct {
@@ -21,24 +25,26 @@ type MimickedClientHello struct {
 	SRTPProtectionProfiles []extension.SRTPProtectionProfile
 }
 
-func (m *MimickedClientHello) Hook(random handshake.Random, sessionID []byte, cookie []byte) handshake.Message {
-	m.Random = random
-	m.SessionID = sessionID
-	m.Cookie = cookie
+// Hook handler, initialize client hello
+func (m *MimickedClientHello) Hook(ch handshake.MessageClientHello) handshake.Message {
+	m.Random = ch.Random
+	m.SessionID = ch.SessionID
+	m.Cookie = ch.Cookie
 	return m
 }
 
-//nolint:revive
+// Type returns the Handshake Type
 func (m MimickedClientHello) Type() handshake.Type {
 	return handshake.TypeClientHello
 }
 
+// Parses hexstring fingerprint and sets Extensions and SRTPProtectionProfiles
 func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHelloFingerprint) error {
 	m.clientHelloFingerprint = fingerprint
 	clientHello := handshake.MessageClientHello{}
 	data, err := hex.DecodeString(string(m.clientHelloFingerprint))
 	if err != nil {
-		return errors.New("mimicry: failed to decode mimicry hexstring") //nolint:goerr113
+		return errHexstringDecode
 	}
 	err = clientHello.Unmarshal(data)
 	if err != nil {
@@ -62,7 +68,7 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 	return nil
 }
 
-//nolint:revive
+// Marshal encodes the Handshake
 func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	var out []byte
 
@@ -71,7 +77,7 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	if string(fingerprint) == "" {
 		fingerprints := fingerprints.GetClientHelloFingerprints()
 		if len(fingerprints) < 1 {
-			return out, errors.New("no fingerprints available") //nolint:goerr113
+			return out, errNoFingerprints
 		}
 		fingerprint = fingerprints[len(fingerprints)-1]
 		m.LoadFingerprint(fingerprint)
@@ -79,11 +85,11 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 
 	data, err := hex.DecodeString(string(fingerprint))
 	if err != nil {
-		err = errors.New("mimicry: failed to decode mimicry hexstring") //nolint:goerr113
+		err = errHexstringDecode
 	}
 
 	if len(data) <= 2 {
-		return out, errors.New("mimicked fingerprint is too short") //nolint:goerr113
+		return out, errBufferTooSmall
 	}
 
 	// Major and minor version
@@ -129,5 +135,5 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	return out, err
 }
 
-//nolint:revive
+// Unmarshal populates the message from encoded data
 func (m *MimickedClientHello) Unmarshal(data []byte) error { return nil }
