@@ -44,11 +44,11 @@ jobs:
     - name: Create directory for pcaps
       run: |
         mkdir ./captures/
-        touch ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+        touch ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
         sudo chown -R root:root ./captures
         ls -lga ./captures
     - name: Start tshark capture
-      run: sudo tshark -i any -w ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap -f "udp" &
+      run: sudo tshark -i any -w ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -f "udp" &
 
     - name: Run webrtc applications with jest/selenium
       run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node_modules/.bin/jest --retries=3 interop
@@ -59,13 +59,13 @@ jobs:
       continue-on-error: true
 
     - name: Filter DTLS handshake in pcap
-      run: sudo tshark -r ./captures/full-capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap -Y "dtls.handshake" -w ./captures/capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+      run: sudo tshark -r ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -Y "dtls.handshake" -w ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
 
     - name: Archive pcap
       uses: actions/upload-artifact@v4
       with:
-        name: fingerprint-pcap-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
-        path: ./captures/capture-${{matrix.browser}}-${{steps.browser.outputs.version}}.pcap
+        name: fingerprint-pcap-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
+        path: ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
 
   commit-fingerprints:
     needs: handshake-capture
