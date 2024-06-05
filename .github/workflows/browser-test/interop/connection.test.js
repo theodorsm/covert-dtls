@@ -9,8 +9,8 @@ const { buildDriver } = require('../webdriver');
 const { PeerConnection, MediaDevices } = require('../webrtcclient');
 const steps = require('../steps');
 
-const browserA = process.env.BROWSER_A || 'firefox';
-const browserB = process.env.BROWSER_B || 'firefox';
+const browserA = process.env.BROWSER_A || 'chrome';
+const browserB = process.env.BROWSER_B || 'chrome';
 
 describe(`basic interop test ${browserA} => ${browserB}`, function() {
   let drivers;
@@ -21,8 +21,8 @@ describe(`basic interop test ${browserA} => ${browserB}`, function() {
       browserLogging: true,
     }
     drivers = [
-      buildDriver(browserA, options),
-      buildDriver(browserB, options),
+      await buildDriver(browserA, options),
+      await buildDriver(browserB, options),
     ];
     clients = drivers.map(driver => {
       return {

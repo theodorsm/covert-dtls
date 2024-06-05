@@ -40,18 +40,20 @@ class MediaDevices {
       }
 
       return navigator.mediaDevices.getUserMedia(constraints)
-          .then((stream) => {
-            window.localStreams[stream.id] = stream;
-            callback({id: stream.id, tracks: stream.getTracks().map((t) => {
-              return {id: t.id, kind: t.kind};
-            })});
-          }, (e) => callback(e));
-    }, constraints || {audio: true, video: true})
-        .then((streamObj) => {
-          const stream = new MediaStream(streamObj.tracks);
-          stream.id = streamObj.id;
-          return stream;
-        });
+        .then((stream) => {
+          window.localStreams[stream.id] = stream;
+          callback({
+            id: stream.id, tracks: stream.getTracks().map((t) => {
+              return { id: t.id, kind: t.kind };
+            })
+          });
+        }, (e) => callback(e));
+    }, constraints || { audio: true, video: true })
+      .then((streamObj) => {
+        const stream = new MediaStream(streamObj.tracks);
+        stream.id = streamObj.id;
+        return stream;
+      });
   }
 }
 
@@ -79,7 +81,7 @@ class PeerConnection {
       const callback = arguments[arguments.length - 1];
 
       pc.createOffer(offerOptions)
-          .then(callback, callback);
+        .then(callback, callback);
     }, offerOptions);
   }
   createAnswer() {
@@ -87,7 +89,7 @@ class PeerConnection {
       const callback = arguments[arguments.length - 1];
 
       pc.createAnswer()
-          .then(callback, callback);
+        .then(callback, callback);
     });
   }
 
@@ -104,7 +106,7 @@ class PeerConnection {
         }
       };
       pc.setLocalDescription(desc)
-          .catch(callback);
+        .catch(callback);
     }, desc);
   }
 
@@ -125,7 +127,7 @@ class PeerConnection {
         document.body.appendChild(video);
       };
       pc.setRemoteDescription(new RTCSessionDescription(desc))
-          .then(callback, callback);
+        .then(callback, callback);
     }, desc);
   }
 }

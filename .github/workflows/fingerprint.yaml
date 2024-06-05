@@ -1,5 +1,8 @@
 name: Fingerprinting
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: "0 1 * * *"
 
@@ -12,20 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         browser: [firefox, chrome]
-        bver: ['stable']
+        bver: [stable]
     steps:
     - uses: actions/checkout@v3
 
     - name: Install tshark
       run: sudo apt install -y tshark
 
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
 
     - run: npm install
-      working-directory: .github/workflows/browser-test/
-
-    - name: Install browser version
-      run: BROWSER=${{matrix.browser}} BVER=${{matrix.bver}} ./node_modules/travis-multirunner/setup.sh
       working-directory: .github/workflows/browser-test/
 
     - name: Remove preinstalled github chromedriver/geckodriver from $PATH
@@ -33,9 +32,13 @@ jobs:
 
     - run: Xvfb :99 &
 
+    - name: Install browser version
+      run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node download-browsers.js
+      working-directory: .github/workflows/browser-test/
+
     - name: Get browser version
       id: "browser"
-      run: echo "version=$(./browsers/bin/${{matrix.browser}}-${{matrix.bver}} --version | sed -e 's/ /_/g' -e 's/\./_/g' -e 's/\-/_/g')" >> $GITHUB_OUTPUT
+      run: echo "version=$(ls ./browsers/${{matrix.browser}} | sed -e 's/ /_/g' -e 's/\./_/g' -e 's/\-/_/g')" >> $GITHUB_OUTPUT
       working-directory: .github/workflows/browser-test/
 
     - name: Create directory for pcaps

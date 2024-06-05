@@ -6,11 +6,27 @@
  *  tree.
  */
 const os = require('os');
+const path = require('path');
 
 const webdriver = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const firefox = require('selenium-webdriver/firefox');
 const safari = require('selenium-webdriver/safari');
+
+const puppeteerBrowsers = require('@puppeteer/browsers');
+
+async function download(browser, version, cacheDir, platform) {
+  const buildId = await puppeteerBrowsers
+    .resolveBuildId(browser, platform, version);
+  await puppeteerBrowsers.install({
+    browser,
+    buildId,
+    cacheDir,
+    platform
+  });
+  return buildId;
+}
+const cacheDir = path.join(process.cwd(), 'browsers');
 
 if (os.platform() === 'win32') {
   process.env.PATH += ';' + process.cwd() + '\\node_modules\\chromedriver\\lib\\chromedriver\\';
@@ -19,22 +35,38 @@ if (os.platform() === 'win32') {
   process.env.PATH += ':node_modules/.bin';
 }
 
-function buildDriver(browser = process.env.BROWSER || 'chrome', options = {version: process.env.BVER}) {
+function mapVersion(browser, version) {
+  const versionMap = {
+    chrome: {
+      unstable: 'dev',
+    },
+    firefox: {
+      unstable: 'nightly',
+    }
+  };
+  return (versionMap[browser] || {})[version] || version;
+}
+
+async function buildDriver(browser = process.env.BROWSER || 'chrome', options = { version: process.env.BVER }) {
+  const version = mapVersion(options.version);
+  const platform = puppeteerBrowsers.detectBrowserPlatform();
+
+  const buildId = await download(browser, version || 'stable',
+    cacheDir, platform);
+
   // Chrome options.
-  // options.headless = true;
   const chromeOptions = new chrome.Options()
-      .addArguments('allow-insecure-localhost')
-      .addArguments('use-fake-device-for-media-stream')
-      .addArguments('allow-file-access-from-files');
-  // .addArguments('headless=new');
+    .addArguments('allow-insecure-localhost')
+    .addArguments('use-fake-device-for-media-stream')
+    .addArguments('allow-file-access-from-files');
   if (options.chromeFlags) {
     options.chromeFlags.forEach((flag) => chromeOptions.addArguments(flag));
   }
-
   if (options.chromepath) {
     chromeOptions.setChromeBinaryPath(options.chromepath);
-  } else if (os.platform() === 'linux' && options.version) {
-    chromeOptions.setChromeBinaryPath('browsers/bin/chrome-' + options.version);
+  } else {
+    chromeOptions.setChromeBinaryPath(puppeteerBrowsers
+      .computeExecutablePath({ browser, buildId, cacheDir, platform }));
   }
 
   if (!options.devices || options.headless) {
@@ -67,16 +99,18 @@ function buildDriver(browser = process.env.BROWSER || 'chrome', options = {versi
     });
   }
 
+  // Safari options.
   const safariOptions = new safari.Options();
-  safariOptions.setTechnologyPreview(options.version === 'unstable');
+  safariOptions.setTechnologyPreview(version === 'unstable');
 
   // Firefox options.
   const firefoxOptions = new firefox.Options();
   let firefoxPath = firefox.Channel.RELEASE;
   if (options.firefoxpath) {
     firefoxPath = options.firefoxpath;
-  } else if (os.platform() == 'linux' && options.version) {
-    firefoxPath = 'browsers/bin/firefox - ' + options.version;
+  } else {
+    firefoxPath = puppeteerBrowsers
+      .computeExecutablePath({ browser, buildId, cacheDir, platform });
   }
   if (options.headless) {
     firefoxOptions.addArguments('-headless');
@@ -86,15 +120,13 @@ function buildDriver(browser = process.env.BROWSER || 'chrome', options = {versi
   firefoxOptions.setPreference('media.navigator.permission.disabled', true);
 
   const driver = new webdriver.Builder()
-      .setChromeOptions(chromeOptions)
-      .setSafariOptions(safariOptions)
-      .setFirefoxOptions(firefoxOptions)
-      .forBrowser(browser);
-  /*
+    .setChromeOptions(chromeOptions)
+    .setSafariOptions(safariOptions)
+    .setFirefoxOptions(firefoxOptions)
+    .forBrowser(browser)
     .setChromeService(
       new chrome.ServiceBuilder().addArguments('--disable-build-check')
     );
-  */
 
   if (browser === 'firefox') {
     driver.getCapabilities().set('marionette', true);
