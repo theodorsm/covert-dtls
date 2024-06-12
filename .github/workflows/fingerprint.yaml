@@ -119,11 +119,14 @@ jobs:
           git add ./pkg/fingerprints/fingerprints.go
           ls -R ${{ runner.temp }}/fingerprints-captures
           ls -R ./fingerprints-captures
+          fingerprints=""
           for file in ${{ runner.temp }}/fingerprints-captures/*; do
             if ! [[ -f ./fingerprints-captures/"${file##*/}" ]]; then
               mv ${{ runner.temp }}/fingerprints-captures/"${file##*/}" ./fingerprints-captures/
               git add ./fingerprints-captures/"${file##*/}"
+              fingerprint=$(echo "${file##*/}" | sed -e 's/.pcap//g' -e 's/capture-//g')
+              fingerprints="${fingerprints} ${fingerprint}"
             fi
           done
-          git commit -m "Add fresh fingerprints"
+          git commit -m "Add fresh fingerprints" -m "$fingerprints"
           git push
