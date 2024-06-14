@@ -26,6 +26,7 @@ const (
 	firefox_linux_stable_126_0_1         ClientHelloFingerprint = "fefd456d7850288d8a38e422000b4d6b94d96af38ae82926100738c531a7b531873b00000010c02bc02fcca9cca8c00ac009c013c0140100006a00170000ff01000100000a00080006001d00170018000b000201000010001200100677656272746308632d776562727463000d0020001e040305030603020308040805080604010501060102010402050206020202001c00024000000e000b0008000700080001000200"                                                                                                                                                       //nolint:revive,stylecheck
 	chrome_linux_126_0_6478_55           ClientHelloFingerprint = "fefd9460e1e8af6afd0c07728ece3350accdb7be89d2a4ebcd9a8d5dc6e780eaeb6000000016c02bc02fcca9cca8c009c013c00ac014009c002f00350100004400170000ff01000100000a00080006001d00170018000b0002010000230000000d00140012040308040401050308050501080606010201000e0009000600010008000700"                                                                                                                                                                                                                       //nolint:revive,stylecheck
 	firefox_linux_stable_127_0           ClientHelloFingerprint = "fefd713910e31aa451cda18c437634c566fb872731739ada472eafa74741c7d02c8c0000001413011303c02bc02fcca9cca8c00ac009c013c014010000b100170000ff01000100000a000c000a001d0017001801000101000b000201000010001200100677656272746308632d7765627274630022000a00080403050306030203003300260024001d00209b3a0682a66a92872457a05dfd4ce6f92312ef605e960f36b8fd71f054b60540002b000706fefcfefd0303000d0020001e040305030603020308040805080604010501060102010402050206020202001c00024001000e000b0008000700080001000200" //nolint:revive,stylecheck
+	chrome_linux_126_0_6478_61           ClientHelloFingerprint = "fefdd55ec527c484ad54a31786a4536060866e8f817605893dc5e6a9b2540ab2e38e00000016c02bc02fcca9cca8c009c013c00ac014009c002f00350100004400170000ff01000100000a00080006001d00170018000b0002010000230000000d00140012040308040401050308050501080606010201000e0009000600010008000700"                                                                                                                                                                                                                       //nolint:revive,stylecheck
 )
 
 //nolint:unused
@@ -51,5 +52,6 @@ func GetClientHelloFingerprints() []ClientHelloFingerprint {
 		firefox_linux_stable_126_0_1,         //nolint:revive,stylecheck
 		chrome_linux_126_0_6478_55,           //nolint:revive,stylecheck
 		firefox_linux_stable_127_0,           //nolint:revive,stylecheck
+		chrome_linux_126_0_6478_61,           //nolint:revive,stylecheck
 	}
 }
