@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
-// SPDX-License-Identifier: MIT
-
 package randomize
 
 import (
@@ -25,4 +22,9 @@ var (
 	errCompressionMethodUnset    = &protocol.FatalError{Err: errors.New("server hello can not be created without a compression method")}             //nolint:goerr113
 	errInvalidCompressionMethod  = &protocol.FatalError{Err: errors.New("invalid or unknown compression method")}                                    //nolint:goerr113
 	errNotImplemented            = &protocol.InternalError{Err: errors.New("feature has not been implemented yet")}                                  //nolint:goerr113
+	ErrALPNInvalidFormat         = &protocol.FatalError{Err: errors.New("invalid alpn format")}                                                      //nolint:goerr113
+	errALPNNoAppProto            = &protocol.FatalError{Err: errors.New("no application protocol")}                                                  //nolint:goerr113
+	errInvalidExtensionType      = &protocol.FatalError{Err: errors.New("invalid extension type")}                                                   //nolint:goerr113
+	errInvalidSNIFormat          = &protocol.FatalError{Err: errors.New("invalid server name format")}                                               //nolint:goerr113
+	errInvalidCIDFormat          = &protocol.FatalError{Err: errors.New("invalid connection ID format")}                                             //nolint:goerr113
 )

@@ -2,29 +2,26 @@ package randomize
 
 import (
 	"encoding/binary"
+
 	"github.com/pion/dtls/v2/pkg/protocol"
 	"github.com/pion/dtls/v2/pkg/protocol/extension"
 	"github.com/pion/dtls/v2/pkg/protocol/handshake"
 )
 
 /*
-RandomizedMessageClientHello is for when a client first connects to a server it is
-required to send the client hello as its first message.  The client can also send a
-client hello in response to a hello request or on its own
-initiative in order to renegotiate the security parameters in an
-existing connection.
+RandomizedMessageClientHello
 */
 type RandomizedMessageClientHello struct {
-	Version protocol.Version
-	Random  handshake.Random
-	Cookie  []byte
-	Test    bool
+	Version    protocol.Version
+	Random     handshake.Random
+	Cookie     []byte
+	RandomALPN bool // Add a random ALPN if there is none in the hooked message
 
 	SessionID []byte
 
 	CipherSuiteIDs     []uint16
 	CompressionMethods []*protocol.CompressionMethod
-	Extensions         []extension.Extension
+	Extensions         []Extension
 }
 
 const handshakeMessageClientHelloVariableWidthStart = 34
@@ -34,6 +31,7 @@ func (m RandomizedMessageClientHello) Type() handshake.Type {
 	return handshake.TypeClientHello
 }
 
+// ClientHello Hook for randomization
 func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) handshake.Message {
 	buf, err := ch.Marshal()
 	if err != nil {
@@ -41,6 +39,20 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	}
 	m.Unmarshal(buf)
 	m.CipherSuiteIDs = ShuffleSlice(m.CipherSuiteIDs, true)
+
+	hasALPN := false
+	for _, e := range m.Extensions {
+		if e.TypeValue() == extension.TypeValue(ALPNTypeValue) {
+			hasALPN = true
+		}
+	}
+	if !hasALPN {
+		e := &extension.ALPN{
+			ProtocolNameList: []string{ALPNS[randRange(0, len(ALPNS)-1)]},
+		}
+		m.Extensions = append(m.Extensions, e)
+	}
+
 	m.Extensions = ShuffleSlice(m.Extensions, false)
 	if err != nil {
 		return &ch
@@ -68,8 +80,7 @@ func (m *RandomizedMessageClientHello) Marshal() ([]byte, error) {
 	out = append(out, m.Cookie...)
 	out = append(out, encodeCipherSuiteIDs(m.CipherSuiteIDs)...)
 	out = append(out, protocol.EncodeCompressionMethods(m.CompressionMethods)...)
-
-	extensions, err := extension.Marshal(m.Extensions)
+	extensions, err := RandomizeExtensionMarshal(m.Extensions)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +155,7 @@ func (m *RandomizedMessageClientHello) Unmarshal(data []byte) error {
 	currOffset += int(data[currOffset]) + 1
 
 	// Extensions
-	extensions, err := extension.Unmarshal(data[currOffset:])
+	extensions, err := RandomizeExtensionUnmarshal(data[currOffset:])
 	if err != nil {
 		return err
 	}
