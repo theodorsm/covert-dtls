@@ -124,7 +124,7 @@ jobs:
             if ! [[ -f ./fingerprints-captures/"${file##*/}" ]]; then
               mv ${{ runner.temp }}/fingerprints-captures/"${file##*/}" ./fingerprints-captures/
               git add ./fingerprints-captures/"${file##*/}"
-              fingerprint=$(echo "${file##*/}" | sed -e 's/.pcap//g' -e 's/capture-//g')
+              fingerprint=$(echo "${file##*/}" | sed -e 's/.pcap//g' -e 's/capture-//g' -e 's/./\u&/')
               fingerprints="${fingerprints} ${fingerprint}"
             fi
           done
