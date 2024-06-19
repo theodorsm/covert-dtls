@@ -12,15 +12,23 @@ This repo contains a github workflow for automatically generating fresh DTLS han
 
 ## Features
 
-- Mimicking/replaying client hellos.
+- Mimicking/replaying *ClientHello*s
+- Randomization of *ClientHello*s
+  - cipher suites: shuffle and random size
+  - extensions: shuffle
+  - `use_srtp`: shuffle and random size
+  - `supported_groups`: shuffle and random size
+  - `signature_algorithm`: shuffle and random size
+  - ALPN: add random ALPN of common protocols
 
 ### Planned
 
-- Mimicking server hello
-- Randomization
+- Mimicking *ServerHello*
+- Mimicking *CertificateRequest*
 
-## Example
+## Examples
 
+### Mimicry
 ```go
 import  (
   "github.com/pion/dtls/v2"
@@ -45,3 +53,18 @@ cfg := &dtls.Config{
 // Use config with connection...
 ```
 
+### Randomization
+```go
+import  (
+  "github.com/pion/dtls/v2"
+  "github.com/theodorsm/covert-dtls/pkg/randomize"
+)
+
+clientHello := randomize.RandomizedMessageClientHello{RandomALPN: true}
+
+cfg := &dtls.Config{
+    ClientHelloMessageHook: clientHello.Hook,
+}
+
+// Use config with connection...
+```

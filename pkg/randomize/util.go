@@ -4,6 +4,7 @@ import (
 	"math/rand/v2"
 )
 
+// nolint:typecheck
 func randRange(min, max int) int {
 	return rand.IntN(max-min) + min
 }

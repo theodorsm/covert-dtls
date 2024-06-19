@@ -31,6 +31,7 @@ func encodeCipherSuiteIDs(cipherSuiteIDs []uint16) []byte {
 	return out
 }
 
+// nolint:typecheck
 func DefaultCipherSuites() []dtls.CipherSuiteID {
 	return []dtls.CipherSuiteID{
 		dtls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,

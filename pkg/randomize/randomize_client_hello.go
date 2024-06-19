@@ -37,7 +37,10 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	if err != nil {
 		return &ch
 	}
-	m.Unmarshal(buf)
+	err = m.Unmarshal(buf)
+	if err != nil {
+		return &ch
+	}
 	m.CipherSuiteIDs = ShuffleSlice(m.CipherSuiteIDs, true)
 
 	hasALPN := false
@@ -46,7 +49,7 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 			hasALPN = true
 		}
 	}
-	if !hasALPN {
+	if !hasALPN && m.RandomALPN {
 		e := &extension.ALPN{
 			ProtocolNameList: []string{ALPNS[randRange(0, len(ALPNS)-1)]},
 		}
