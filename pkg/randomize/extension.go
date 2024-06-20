@@ -90,8 +90,6 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			err = unmarshalAndAppend(buf[offset:], &extension.UseExtendedMasterSecret{})
 		case RenegotiationInfoTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.RenegotiationInfo{})
-		case ConnectionIDTypeValue:
-			err = unmarshalAndAppend(buf[offset:], &extension.ConnectionID{})
 		default:
 		}
 		if err != nil {

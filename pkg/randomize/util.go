@@ -1,12 +1,12 @@
 package randomize
 
 import (
-	"math/rand/v2"
+	"math/rand"
 )
 
 // nolint:typecheck
 func randRange(min, max int) int {
-	return rand.IntN(max-min) + min
+	return rand.Intn(max-min) + min
 }
 
 var ALPNS = []string{"http/1.0", "http/1.1", "h2c", "h2", "h3", "stun.turn", "webrtc", "c-webrtc", "ftp", "pop3", "imap", "mqtt", "smb", "irc", "sip/2"}
