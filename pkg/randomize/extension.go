@@ -2,7 +2,7 @@ package randomize
 
 import (
 	"encoding/binary"
-	"github.com/pion/dtls/v2/pkg/protocol/extension"
+	"github.com/theodorsm/dtls/v2/pkg/protocol/extension"
 )
 
 // TypeValue is the 2 byte value for a TLS Extension as registered in the IANA

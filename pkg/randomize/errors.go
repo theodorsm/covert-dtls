@@ -3,7 +3,7 @@ package randomize
 import (
 	"errors"
 
-	"github.com/pion/dtls/v2/pkg/protocol"
+	"github.com/theodorsm/dtls/v2/pkg/protocol"
 )
 
 // Typed errors
