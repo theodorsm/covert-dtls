@@ -4,11 +4,11 @@ covertDTLS is a library inspired by [uTLS](https://github.com/refraction-network
 
 ## Why does this library exists?
 
-The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake) has previously been blocked by fingerprinting the dtls handshake. This library is a module that extends the `pion/dtls` library by hooking and manipulating handshake messages to make them indistinguishable from other dtls implementations used for webrtc traffic.
+The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake) has previously been blocked by fingerprinting the DTLS handshake. This library is a module that extends the `pion/dtls` library by hooking and manipulating handshake messages to make them indistinguishable from other DTLS implementations used for WebRTC traffic.
 
 ## Fingerprint generation
 
-This repo contains a github workflow for automatically generating fresh DTLS handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal webrtc example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the `fingerprints-captures` directory. The pcaps are further parsed and a fingerprint is added to `pkg/mimicry/fingerprints.go`
+This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
 
 ## Features
 
