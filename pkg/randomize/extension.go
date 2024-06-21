@@ -64,7 +64,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.EllipticCurves = ShuffleSlice(e.EllipticCurves, true)
+			e.EllipticCurves = ShuffleRandomLength(e.EllipticCurves, true)
 			extensions = append(extensions, e)
 		case SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
@@ -74,7 +74,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.SignatureHashAlgorithms = ShuffleSlice(e.SignatureHashAlgorithms, true)
+			e.SignatureHashAlgorithms = ShuffleRandomLength(e.SignatureHashAlgorithms, true)
 			extensions = append(extensions, e)
 		case UseSRTPTypeValue:
 			e := &extension.UseSRTP{}
@@ -82,7 +82,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.ProtectionProfiles = ShuffleSlice(e.ProtectionProfiles, true)
+			e.ProtectionProfiles = ShuffleRandomLength(e.ProtectionProfiles, true)
 			extensions = append(extensions, e)
 		case ALPNTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ALPN{})

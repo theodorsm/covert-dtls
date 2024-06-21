@@ -41,7 +41,7 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	if err != nil {
 		return &ch
 	}
-	m.CipherSuiteIDs = ShuffleSlice(m.CipherSuiteIDs, true)
+	m.CipherSuiteIDs = ShuffleRandomLength(m.CipherSuiteIDs, true)
 
 	hasALPN := false
 	for _, e := range m.Extensions {
@@ -56,10 +56,7 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 		m.Extensions = append(m.Extensions, e)
 	}
 
-	m.Extensions = ShuffleSlice(m.Extensions, false)
-	if err != nil {
-		return &ch
-	}
+	m.Extensions = ShuffleRandomLength(m.Extensions, false)
 	return m
 }
 
