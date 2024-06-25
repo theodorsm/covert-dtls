@@ -4,16 +4,20 @@ covertDTLS is a library inspired by [uTLS](https://github.com/refraction-network
 
 ## Why does this library exists?
 
-The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake) has previously been blocked by fingerprinting the DTLS handshake. This library is a module that extends the `pion/dtls` library by hooking and manipulating handshake messages to make them indistinguishable from other DTLS implementations used for WebRTC traffic.
+The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake) has previously been blocked by fingerprinting the DTLS handshake. This library is a module that extends the `pion/dtls` library by hooking and manipulating handshake messages to make them indistinguishable from other DTLS implementations used for WebRTC traffic. 
 
 ## Fingerprint generation
 
 This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
 
+## Validation
+
+This library was developed as part of a Master thesis, *"Reducing distinguishability of DTLS for usage in Snowflake"*. Additionally, *[dfind](https://github.com/theodorsm/dfind)* was created for analyzing and finding passive field-based fingerprints of DTLS. *dfind* was used to validate this library, finding that mimicked *ClientHello* messages was indistinguishable from the fresh browser handshakes . Analysis also found that randomization of extensions was especially effective against fingerprinting, while randomization of ciphers has potential, but must be configured properly. To provide more effective randomization, it is recommended to use this library with **configuring as many supported ciphers as possible** (using `Config.CipherSuites`).
+
 ## Features
 
-- Mimicking/replaying *ClientHello*s
-- Randomization of *ClientHello*s
+- Mimicking/replaying *ClientHello*
+- Randomization of *ClientHello* 
   - cipher suites: shuffle and random size
   - extensions: shuffle
   - `use_srtp`: shuffle and random size
@@ -21,10 +25,13 @@ This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/work
   - `signature_algorithm`: shuffle and random size
   - ALPN: add random ALPN of common protocols
 
+*Note*: using these features might make handshakes unstable as unsupported features might be announced in the *ClientHello* message.
+
 ### Planned
 
 - Mimicking *ServerHello*
 - Mimicking *CertificateRequest*
+
 
 ## Examples
 
@@ -63,6 +70,8 @@ import  (
 clientHello := randomize.RandomizedMessageClientHello{RandomALPN: true}
 
 cfg := &dtls.Config{
+    // Enable all ciphers for making randomization more effective. Optional step.
+    CipherSuites: randomize.DefaultCipherSuites() ,
     ClientHelloMessageHook: clientHello.Hook,
 }
 
