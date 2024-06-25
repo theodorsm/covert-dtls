@@ -10,6 +10,8 @@ The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tp
 
 This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
 
+[main.go](main.go) contains a script for parsing pcaps, extracting the fingerprints and adding them to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
+
 ## Validation
 
 This library was developed as part of a Master thesis, *"Reducing distinguishability of DTLS for usage in Snowflake"*. Additionally, *[dfind](https://github.com/theodorsm/dfind)* was created for analyzing and finding passive field-based fingerprints of DTLS. *dfind* was used to validate this library, finding that mimicked *ClientHello* messages was indistinguishable from the fresh browser handshakes . Analysis also found that randomization of extensions was especially effective against fingerprinting, while randomization of ciphers has potential, but must be configured properly. To provide more effective randomization, it is recommended to use this library with **configuring as many supported ciphers as possible** (using `Config.CipherSuites`).
