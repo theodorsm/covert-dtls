@@ -14,7 +14,7 @@ This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/work
 
 ## Validation
 
-This library was developed as part of a Master thesis, *[Reducing distinguishability of DTLS for usage in Snowflake](https://theodorsm.net/thesis)"*. Additionally, *[dfind](https://github.com/theodorsm/dfind)* was created for analyzing and finding passive field-based fingerprints of DTLS. *dfind* was used to validate this library, finding that mimicked *ClientHello* messages was indistinguishable from the fresh browser handshakes . Analysis also found that randomization of extensions was especially effective against fingerprinting, while randomization of ciphers has potential, but must be configured properly. To provide more effective randomization, it is recommended to use this library with **configuring as many supported ciphers as possible** (using `Config.CipherSuites`).
+This library was developed as part of a Master thesis: "*[Reducing distinguishability of DTLS for usage in Snowflake](https://theodorsm.net/thesis)"*. Additionally, *[dfind](https://github.com/theodorsm/dfind)* was created for analyzing and finding passive field-based fingerprints of DTLS. *dfind* was used to validate this library, finding that mimicked *ClientHello* messages was indistinguishable from the fresh browser handshakes . Analysis also found that randomization of extensions was especially effective against fingerprinting, while randomization of ciphers has potential, but must be configured properly. To provide more effective randomization, it is recommended to use this library with **configuring as many supported ciphers as possible** (using `Config.CipherSuites`).
 
 ## Features
 
