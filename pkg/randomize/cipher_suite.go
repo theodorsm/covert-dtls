@@ -2,7 +2,7 @@ package randomize
 
 import (
 	"encoding/binary"
-	"github.com/theodorsm/dtls/v2"
+	"github.com/pion/dtls/v3"
 )
 
 func decodeCipherSuiteIDs(buf []byte) ([]uint16, error) {

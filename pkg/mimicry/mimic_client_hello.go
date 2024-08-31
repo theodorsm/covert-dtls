@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 
+	"github.com/pion/dtls/v3/pkg/protocol/extension"
+	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
-	"github.com/theodorsm/dtls/v2/pkg/protocol/extension"
-	"github.com/theodorsm/dtls/v2/pkg/protocol/handshake"
 )
 
 var (

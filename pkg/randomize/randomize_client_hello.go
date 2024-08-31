@@ -3,9 +3,9 @@ package randomize
 import (
 	"encoding/binary"
 
-	"github.com/theodorsm/dtls/v2/pkg/protocol"
-	"github.com/theodorsm/dtls/v2/pkg/protocol/extension"
-	"github.com/theodorsm/dtls/v2/pkg/protocol/handshake"
+	"github.com/pion/dtls/v3/pkg/protocol"
+	"github.com/pion/dtls/v3/pkg/protocol/extension"
+	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 )
 
 /*
