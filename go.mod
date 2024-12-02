@@ -1,6 +1,6 @@
 module github.com/theodorsm/covert-dtls
 
-go 1.22
+go 1.21
 
 require (
 	github.com/google/gopacket v1.1.19

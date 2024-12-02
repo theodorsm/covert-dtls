@@ -1,11 +1,20 @@
 package randomize
 
 import (
-	"math/rand/v2"
+	"crypto/rand"
+	"math/big"
 )
 
 func randRange(min, max int) int {
-	return rand.IntN(max-min+1) + min
+	bigRandomNumber, err := rand.Int(rand.Reader, big.NewInt(int64(max+1)))
+	if err != nil {
+		panic(err)
+	}
+	randomNumber := int(bigRandomNumber.Int64())
+	if randomNumber < min {
+		return min
+	}
+	return randomNumber
 }
 
 var ALPNS = []string{"http/1.0", "http/1.1", "h2c", "h2", "h3", "stun.turn", "webrtc", "c-webrtc", "ftp", "pop3", "imap", "mqtt", "smb", "irc", "sip/2"}
