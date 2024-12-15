@@ -43,6 +43,7 @@ import  (
   "github.com/pion/dtls/v2"
   "github.com/theodorsm/covert-dtls/pkg/fingerprints"
   "github.com/theodorsm/covert-dtls/pkg/mimicry"
+  "github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
 // Get a specific fingerprint
@@ -55,7 +56,7 @@ clientHello.LoadFingerprint(fingerprint)
 
 cfg := &dtls.Config{
     // SRTP needs to be enabled as the fingerprints are from webrtc traffic, thus containing the use_srtp extension.
-    SRTPProtectionProfiles: DefaultSRTPProtectionProfiles(),
+    SRTPProtectionProfiles: utils.DefaultSRTPProtectionProfiles(),
     ClientHelloMessageHook: clientHello.Hook,
 }
 
