@@ -38,7 +38,7 @@ if (os.platform() === 'win32') {
 function mapVersion(browser, version) {
   const versionMap = {
     chrome: {
-      unstable: 'dev',
+      unstable: 'canary',
     },
     firefox: {
       unstable: 'nightly',
@@ -56,6 +56,7 @@ async function buildDriver(browser = process.env.BROWSER || 'chrome', options = 
 
   // Chrome options.
   const chromeOptions = new chrome.Options()
+    .addArguments('no-sandbox')
     .addArguments('allow-insecure-localhost')
     .addArguments('use-fake-device-for-media-stream')
     .addArguments('allow-file-access-from-files');
