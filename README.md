@@ -55,7 +55,7 @@ clientHello.LoadFingerprint(fingerprint)
 
 cfg := &dtls.Config{
     // SRTP needs to be enabled as the fingerprints are from webrtc traffic, thus containing the use_srtp extension.
-    SRTPProtectionProfiles: []dtls.SRTPProtectionProfile{dtls.SRTP_AES128_CM_HMAC_SHA1_80, dtls.SRTP_AES128_CM_HMAC_SHA1_32, dtls.SRTP_AEAD_AES_128_GCM, dtls.SRTP_AEAD_AES_256_GCM},
+    SRTPProtectionProfiles: DefaultSRTPProtectionProfiles(),
     ClientHelloMessageHook: clientHello.Hook,
 }
 
