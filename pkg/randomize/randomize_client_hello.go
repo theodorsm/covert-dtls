@@ -6,6 +6,7 @@ import (
 	"github.com/pion/dtls/v3/pkg/protocol"
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/pion/dtls/v3/pkg/protocol/handshake"
+	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
 /*
@@ -41,7 +42,7 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	if err != nil {
 		return &ch
 	}
-	m.CipherSuiteIDs = ShuffleRandomLength(m.CipherSuiteIDs, true)
+	m.CipherSuiteIDs = utils.ShuffleRandomLength(m.CipherSuiteIDs, true)
 
 	hasALPN := false
 	for _, e := range m.Extensions {
@@ -51,12 +52,12 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	}
 	if !hasALPN && m.RandomALPN {
 		e := &extension.ALPN{
-			ProtocolNameList: []string{ALPNS[randRange(0, len(ALPNS)-1)]},
+			ProtocolNameList: []string{utils.ALPNS[utils.RandRange(0, len(utils.ALPNS)-1)]},
 		}
 		m.Extensions = append(m.Extensions, e)
 	}
 
-	m.Extensions = ShuffleRandomLength(m.Extensions, false)
+	m.Extensions = utils.ShuffleRandomLength(m.Extensions, false)
 	return m
 }
 

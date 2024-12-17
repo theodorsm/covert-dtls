@@ -7,6 +7,7 @@ import (
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
+	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
 var (
@@ -66,6 +67,14 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 		}
 	}
 	return nil
+}
+
+// Loads a random fingerprint to mimic
+func (m *MimickedClientHello) LoadRandomFingerprint() error {
+	allFingerprints := fingerprints.GetClientHelloFingerprints()
+	length := len(allFingerprints)
+	randomFingerprint := allFingerprints[utils.RandRange(0, length-1)]
+	return m.LoadFingerprint(randomFingerprint)
 }
 
 // Marshal encodes the Handshake

@@ -3,6 +3,7 @@ package randomize
 import (
 	"encoding/binary"
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
+	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
 // TypeValue is the 2 byte value for a TLS Extension as registered in the IANA
@@ -64,7 +65,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.EllipticCurves = ShuffleRandomLength(e.EllipticCurves, true)
+			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true)
 			extensions = append(extensions, e)
 		case SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
@@ -74,7 +75,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.SignatureHashAlgorithms = ShuffleRandomLength(e.SignatureHashAlgorithms, true)
+			e.SignatureHashAlgorithms = utils.ShuffleRandomLength(e.SignatureHashAlgorithms, true)
 			extensions = append(extensions, e)
 		case UseSRTPTypeValue:
 			e := &extension.UseSRTP{}
@@ -82,7 +83,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.ProtectionProfiles = ShuffleRandomLength(e.ProtectionProfiles, true)
+			e.ProtectionProfiles = utils.ShuffleRandomLength(e.ProtectionProfiles, true)
 			extensions = append(extensions, e)
 		case ALPNTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ALPN{})

@@ -1,11 +1,11 @@
-package randomize
+package utils
 
 import (
 	"crypto/rand"
 	"math/big"
 )
 
-func randRange(min, max int) int {
+func RandRange(min, max int) int {
 	bigRandomNumber, err := rand.Int(rand.Reader, big.NewInt(int64(max+1)))
 	if err != nil {
 		panic(err)
@@ -28,12 +28,12 @@ func ShuffleRandomLength[T any](s []T, randomLen bool) []T {
 	_ = copy(tmp, s)
 	var n int
 	if randomLen {
-		n = randRange(1, len(tmp))
+		n = RandRange(1, len(tmp))
 	} else {
 		n = len(tmp)
 	}
 	for len(out) < n {
-		pick := randRange(0, len(tmp)-1)
+		pick := RandRange(0, len(tmp)-1)
 		out = append(out, tmp[pick])
 		tmp = remove(tmp, pick)
 	}

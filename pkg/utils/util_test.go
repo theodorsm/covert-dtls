@@ -1,4 +1,4 @@
-package randomize
+package utils
 
 import (
 	"testing"
