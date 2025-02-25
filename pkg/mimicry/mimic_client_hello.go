@@ -22,8 +22,9 @@ type MimickedClientHello struct {
 	Random                 handshake.Random
 	SessionID              []byte
 	Cookie                 []byte
-	Extensions             []extension.Extension
+
 	SRTPProtectionProfiles []extension.SRTPProtectionProfile
+	Extensions             []extension.Extension
 }
 
 // Hook handler, initialize client hello
@@ -51,9 +52,9 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 	if err != nil {
 		return err
 	}
-	m.Extensions = clientHello.Extensions
-	for _, ext := range m.Extensions {
-		if ext.TypeValue() == extension.UseSRTPTypeValue {
+	for _, ext := range clientHello.Extensions {
+		switch ext.TypeValue() {
+		case extension.UseSRTPTypeValue:
 			srtp := extension.UseSRTP{}
 			buf, err := ext.Marshal()
 			if err != nil {
@@ -64,6 +65,9 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 				return err
 			}
 			m.SRTPProtectionProfiles = srtp.ProtectionProfiles
+		default:
+			m.Extensions = append(m.Extensions, ext)
+
 		}
 	}
 	return nil
@@ -94,7 +98,7 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 
 	data, err := hex.DecodeString(string(fingerprint))
 	if err != nil {
-		err = errHexstringDecode
+		return out, errHexstringDecode
 	}
 
 	if len(data) <= 2 {
@@ -139,9 +143,30 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	out = append(out, byte(len(m.Cookie)))
 	out = append(out, m.Cookie...)
 
-	out = append(out, data[currOffset:]...)
+	n = int(data[currOffset-1])
+	if len(data) <= currOffset+n {
+		return out, errBufferTooSmall
+	}
+	cipherSuiteIDs := append([]byte{}, data[currOffset:currOffset+n]...)
+	currOffset += len(cipherSuiteIDs)
+	out = append(out, byte(len(cipherSuiteIDs)))
+	out = append(out, cipherSuiteIDs...)
 
-	return out, err
+	n = int(data[currOffset-1])
+	if len(data) <= currOffset+n {
+		return out, errBufferTooSmall
+	}
+	compressionMethods := append([]byte{}, data[currOffset:currOffset+n]...)
+	currOffset += len(compressionMethods)
+	out = append(out, byte(len(compressionMethods)))
+	out = append(out, compressionMethods...)
+
+	extensions, err := utils.ExtensionMarshal(m.Extensions)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(out, extensions...), nil
 }
 
 // Unmarshal populates the message from encoded data

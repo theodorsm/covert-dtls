@@ -22,7 +22,7 @@ type RandomizedMessageClientHello struct {
 
 	CipherSuiteIDs     []uint16
 	CompressionMethods []*protocol.CompressionMethod
-	Extensions         []Extension
+	Extensions         []extension.Extension
 }
 
 const handshakeMessageClientHelloVariableWidthStart = 34
@@ -46,7 +46,7 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 
 	hasALPN := false
 	for _, e := range m.Extensions {
-		if e.TypeValue() == extension.TypeValue(ALPNTypeValue) {
+		if e.TypeValue() == extension.TypeValue(extension.ALPNTypeValue) {
 			hasALPN = true
 		}
 	}
@@ -81,7 +81,7 @@ func (m *RandomizedMessageClientHello) Marshal() ([]byte, error) {
 	out = append(out, m.Cookie...)
 	out = append(out, encodeCipherSuiteIDs(m.CipherSuiteIDs)...)
 	out = append(out, protocol.EncodeCompressionMethods(m.CompressionMethods)...)
-	extensions, err := RandomizeExtensionMarshal(m.Extensions)
+	extensions, err := utils.ExtensionMarshal(m.Extensions)
 	if err != nil {
 		return nil, err
 	}
