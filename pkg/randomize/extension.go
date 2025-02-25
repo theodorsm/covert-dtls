@@ -6,32 +6,11 @@ import (
 	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
-// TypeValue is the 2 byte value for a TLS Extension as registered in the IANA
-//
-// https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
-type TypeValue uint16
-
-// TypeValue constants
-const (
-	ServerNameTypeValue                   TypeValue = 0
-	SupportedEllipticCurvesTypeValue      TypeValue = 10
-	SupportedPointFormatsTypeValue        TypeValue = 11
-	SupportedSignatureAlgorithmsTypeValue TypeValue = 13
-	UseSRTPTypeValue                      TypeValue = 14
-	ALPNTypeValue                         TypeValue = 16
-	UseExtendedMasterSecretTypeValue      TypeValue = 23
-	ConnectionIDTypeValue                 TypeValue = 54
-	RenegotiationInfoTypeValue            TypeValue = 65281
-)
-
-// Extension represents a single TLS extension
-type Extension = extension.Extension
-
 // Unmarshal many extensions at once, will randomize use_srtp, signature_algorithms and supported_groups.
-func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
+func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 	switch {
 	case len(buf) == 0:
-		return []Extension{}, nil
+		return []extension.Extension{}, nil
 	case len(buf) < 2:
 		return nil, errBufferTooSmall
 	}
@@ -41,8 +20,8 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 		return nil, errLengthMismatch
 	}
 
-	extensions := []Extension{}
-	unmarshalAndAppend := func(data []byte, e Extension) error {
+	extensions := []extension.Extension{}
+	unmarshalAndAppend := func(data []byte, e extension.Extension) error {
 		err := e.Unmarshal(data)
 		if err != nil {
 			return err
@@ -56,10 +35,10 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			return nil, errBufferTooSmall
 		}
 		var err error
-		switch TypeValue(binary.BigEndian.Uint16(buf[offset:])) {
-		case ServerNameTypeValue:
+		switch extension.TypeValue(binary.BigEndian.Uint16(buf[offset:])) {
+		case extension.ServerNameTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ServerName{})
-		case SupportedEllipticCurvesTypeValue:
+		case extension.SupportedEllipticCurvesTypeValue:
 			e := &extension.SupportedEllipticCurves{}
 			err = e.Unmarshal(buf[offset:])
 			if err != nil {
@@ -67,9 +46,9 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			}
 			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true)
 			extensions = append(extensions, e)
-		case SupportedPointFormatsTypeValue:
+		case extension.SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
-		case SupportedSignatureAlgorithmsTypeValue:
+		case extension.SupportedSignatureAlgorithmsTypeValue:
 			e := &extension.SupportedSignatureAlgorithms{}
 			err = e.Unmarshal(buf[offset:])
 			if err != nil {
@@ -77,7 +56,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			}
 			e.SignatureHashAlgorithms = utils.ShuffleRandomLength(e.SignatureHashAlgorithms, true)
 			extensions = append(extensions, e)
-		case UseSRTPTypeValue:
+		case extension.UseSRTPTypeValue:
 			e := &extension.UseSRTP{}
 			err = e.Unmarshal(buf[offset:])
 			if err != nil {
@@ -85,11 +64,11 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 			}
 			e.ProtectionProfiles = utils.ShuffleRandomLength(e.ProtectionProfiles, true)
 			extensions = append(extensions, e)
-		case ALPNTypeValue:
+		case extension.ALPNTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ALPN{})
-		case UseExtendedMasterSecretTypeValue:
+		case extension.UseExtendedMasterSecretTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.UseExtendedMasterSecret{})
-		case RenegotiationInfoTypeValue:
+		case extension.RenegotiationInfoTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.RenegotiationInfo{})
 		default:
 		}
@@ -103,19 +82,4 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]Extension, error) {
 		offset += (4 + int(extensionLength))
 	}
 	return extensions, nil
-}
-
-// Marshal many extensions at once
-func RandomizeExtensionMarshal(e []Extension) ([]byte, error) {
-	extensions := []byte{}
-	for _, e := range e {
-		raw, err := e.Marshal()
-		if err != nil {
-			return nil, err
-		}
-		extensions = append(extensions, raw...)
-	}
-	out := []byte{0x00, 0x00}
-	binary.BigEndian.PutUint16(out, uint16(len(extensions)))
-	return append(out, extensions...), nil
 }
