@@ -16,8 +16,9 @@ const (
 )
 
 var (
-	errKeyLength = errors.New("generated key length does not match")
-	errRandomKey = errors.New("error while generating random key")
+	errKeyLength            = errors.New("generated key length does not match")
+	errRandomKey            = errors.New("error while generating random key")
+	errInvalidExtensionType = errors.New("invalid extension type")
 )
 
 type KeyShareEntry struct {
@@ -81,5 +82,24 @@ func (k KeyShare) Marshal() ([]byte, error) {
 }
 
 func (k KeyShare) Unmarshal(data []byte) error {
+	if len(data) <= keyShareHeaderSize {
+		return errBufferTooSmall
+	} else if extension.TypeValue(binary.BigEndian.Uint16(data)) != k.TypeValue() {
+		return errInvalidExtensionType
+	}
+
+	// TODO: verify
+	currOff := keyShareHeaderSize
+	for currOff < len(data) {
+		group := binary.BigEndian.Uint16(data[currOff:])
+		currOff += 2
+		if currOff < len(data) {
+			return errLengthMismatch
+		}
+		keyLength := binary.BigEndian.Uint16(data[currOff:])
+		k.KeyShareEntries = append(k.KeyShareEntries, KeyShareEntry{group: group, keyLength: keyLength})
+		currOff += 2 + int(keyLength)
+	}
+
 	return nil
 }
