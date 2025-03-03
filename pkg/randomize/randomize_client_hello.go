@@ -79,7 +79,7 @@ func (m *RandomizedMessageClientHello) Marshal() ([]byte, error) {
 
 	out = append(out, byte(len(m.Cookie)))
 	out = append(out, m.Cookie...)
-	out = append(out, encodeCipherSuiteIDs(m.CipherSuiteIDs)...)
+	out = append(out, utils.EncodeCipherSuiteIDs(m.CipherSuiteIDs)...)
 	out = append(out, protocol.EncodeCompressionMethods(m.CompressionMethods)...)
 	extensions, err := utils.ExtensionMarshal(m.Extensions)
 	if err != nil {
@@ -131,7 +131,7 @@ func (m *RandomizedMessageClientHello) Unmarshal(data []byte) error {
 	if len(data) < currOffset {
 		return errBufferTooSmall
 	}
-	cipherSuiteIDs, err := decodeCipherSuiteIDs(data[currOffset:])
+	cipherSuiteIDs, err := utils.DecodeCipherSuiteIDs(data[currOffset:])
 	if err != nil {
 		return err
 	}

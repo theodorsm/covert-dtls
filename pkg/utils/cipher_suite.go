@@ -1,11 +1,11 @@
-package randomize
+package utils
 
 import (
 	"encoding/binary"
 	"github.com/pion/dtls/v3"
 )
 
-func decodeCipherSuiteIDs(buf []byte) ([]uint16, error) {
+func DecodeCipherSuiteIDs(buf []byte) ([]uint16, error) {
 	if len(buf) < 2 {
 		return nil, errBufferTooSmall
 	}
@@ -21,7 +21,7 @@ func decodeCipherSuiteIDs(buf []byte) ([]uint16, error) {
 	return rtrn, nil
 }
 
-func encodeCipherSuiteIDs(cipherSuiteIDs []uint16) []byte {
+func EncodeCipherSuiteIDs(cipherSuiteIDs []uint16) []byte {
 	out := []byte{0x00, 0x00}
 	binary.BigEndian.PutUint16(out[len(out)-2:], uint16(len(cipherSuiteIDs)*2))
 	for _, id := range cipherSuiteIDs {
