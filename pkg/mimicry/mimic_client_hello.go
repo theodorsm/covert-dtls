@@ -1,9 +1,11 @@
 package mimicry
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 
+	"github.com/pion/dtls/v3/pkg/protocol"
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
@@ -16,15 +18,21 @@ var (
 	errHexstringDecode = errors.New("mimicry: failed to decode mimicry hexstring")
 )
 
+const handshakeMessageClientHelloVariableWidthStart = 34
+
 // MimickedClientHello is to be used as a way to replay DTLS client hello messages. To be used with the Pion dtls library.
 type MimickedClientHello struct {
 	clientHelloFingerprint fingerprints.ClientHelloFingerprint
+	Version                protocol.Version
 	Random                 handshake.Random
-	SessionID              []byte
 	Cookie                 []byte
 
-	SRTPProtectionProfiles []extension.SRTPProtectionProfile
+	SessionID []byte
+
+	CipherSuiteIDs         []uint16
+	CompressionMethods     []*protocol.CompressionMethod
 	Extensions             []extension.Extension
+	SRTPProtectionProfiles []extension.SRTPProtectionProfile
 }
 
 // Hook handler, initialize client hello
@@ -143,15 +151,22 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	out = append(out, byte(len(m.Cookie)))
 	out = append(out, m.Cookie...)
 
-	n = int(data[currOffset-1])
+	if len(data) <= currOffset {
+		return out, errBufferTooSmall
+	}
+	n = int(binary.BigEndian.Uint16(data[currOffset:]))
+	currOffset += 2
 	if len(data) <= currOffset+n {
 		return out, errBufferTooSmall
 	}
+	out = append(out, []byte{0x00, 0x00}...)
+	binary.BigEndian.PutUint16(out[len(out)-2:], uint16(n))
+
 	cipherSuiteIDs := append([]byte{}, data[currOffset:currOffset+n]...)
 	currOffset += len(cipherSuiteIDs)
-	out = append(out, byte(len(cipherSuiteIDs)))
 	out = append(out, cipherSuiteIDs...)
 
+	currOffset++
 	n = int(data[currOffset-1])
 	if len(data) <= currOffset+n {
 		return out, errBufferTooSmall
@@ -170,4 +185,77 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 }
 
 // Unmarshal populates the message from encoded data
-func (m *MimickedClientHello) Unmarshal(data []byte) error { return nil }
+func (m *MimickedClientHello) Unmarshal(data []byte) error {
+	if len(data) < 2+handshake.RandomLength {
+		return errBufferTooSmall
+	}
+
+	m.Version.Major = data[0]
+	m.Version.Minor = data[1]
+
+	var random [handshake.RandomLength]byte
+	copy(random[:], data[2:])
+	m.Random.UnmarshalFixed(random)
+
+	// rest of packet has variable width sections
+	currOffset := handshakeMessageClientHelloVariableWidthStart
+
+	currOffset++
+	if len(data) <= currOffset {
+		return errBufferTooSmall
+	}
+	n := int(data[currOffset-1])
+	if len(data) <= currOffset+n {
+		return errBufferTooSmall
+	}
+	m.SessionID = append([]byte{}, data[currOffset:currOffset+n]...)
+	currOffset += len(m.SessionID)
+
+	currOffset++
+	if len(data) <= currOffset {
+		return errBufferTooSmall
+	}
+	n = int(data[currOffset-1])
+	if len(data) <= currOffset+n {
+		return errBufferTooSmall
+	}
+	m.Cookie = append([]byte{}, data[currOffset:currOffset+n]...)
+	currOffset += len(m.Cookie)
+
+	// Cipher Suites
+	if len(data) < currOffset {
+		return errBufferTooSmall
+	}
+	cipherSuiteIDs, err := utils.DecodeCipherSuiteIDs(data[currOffset:])
+	if err != nil {
+		return err
+	}
+	m.CipherSuiteIDs = cipherSuiteIDs
+	if len(data) < currOffset+2 {
+		return errBufferTooSmall
+	}
+	currOffset += int(binary.BigEndian.Uint16(data[currOffset:])) + 2
+
+	// Compression Methods
+	if len(data) < currOffset {
+		return errBufferTooSmall
+	}
+	compressionMethods, err := protocol.DecodeCompressionMethods(data[currOffset:])
+	if err != nil {
+		return err
+	}
+	m.CompressionMethods = compressionMethods
+	if len(data) < currOffset {
+		return errBufferTooSmall
+	}
+	currOffset += int(data[currOffset]) + 1
+
+	// Extensions
+	extensions, err := extension.Unmarshal(data[currOffset:])
+	if err != nil {
+		return err
+	}
+	m.Extensions = extensions
+
+	return nil
+}
