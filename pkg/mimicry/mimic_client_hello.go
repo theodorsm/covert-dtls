@@ -3,19 +3,12 @@ package mimicry
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 
 	"github.com/pion/dtls/v3/pkg/protocol"
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 	"github.com/theodorsm/covert-dtls/pkg/fingerprints"
 	"github.com/theodorsm/covert-dtls/pkg/utils"
-)
-
-var (
-	errBufferTooSmall  = errors.New("buffer is too small")
-	errNoFingerprints  = errors.New("no fingerprints available")
-	errHexstringDecode = errors.New("mimicry: failed to decode mimicry hexstring")
 )
 
 const handshakeMessageClientHelloVariableWidthStart = 34
@@ -51,34 +44,12 @@ func (m MimickedClientHello) Type() handshake.Type {
 // Parses hexstring fingerprint and sets Extensions and SRTPProtectionProfiles
 func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHelloFingerprint) error {
 	m.clientHelloFingerprint = fingerprint
-	clientHello := handshake.MessageClientHello{}
 	data, err := hex.DecodeString(string(m.clientHelloFingerprint))
 	if err != nil {
 		return errHexstringDecode
 	}
-	err = clientHello.Unmarshal(data)
-	if err != nil {
-		return err
-	}
-	for _, ext := range clientHello.Extensions {
-		switch ext.TypeValue() {
-		case extension.UseSRTPTypeValue:
-			srtp := extension.UseSRTP{}
-			buf, err := ext.Marshal()
-			if err != nil {
-				return err
-			}
-			err = srtp.Unmarshal(buf)
-			if err != nil {
-				return err
-			}
-			m.SRTPProtectionProfiles = srtp.ProtectionProfiles
-		default:
-			m.Extensions = append(m.Extensions, ext)
-
-		}
-	}
-	return nil
+	err = m.Unmarshal(data)
+	return err
 }
 
 // Loads a random fingerprint to mimic
@@ -91,7 +62,7 @@ func (m *MimickedClientHello) LoadRandomFingerprint() error {
 
 // Marshal encodes the Handshake
 func (m *MimickedClientHello) Marshal() ([]byte, error) {
-	var out []byte
+	out := make([]byte, handshakeMessageClientHelloVariableWidthStart)
 
 	fingerprint := m.clientHelloFingerprint
 
@@ -113,68 +84,23 @@ func (m *MimickedClientHello) Marshal() ([]byte, error) {
 		return out, errBufferTooSmall
 	}
 
-	// Major and minor version
-	currOffset := 2
-	out = append(out, data[:currOffset]...)
-
-	rb := m.Random.MarshalFixed()
-	out = append(out, rb[:]...)
-
-	// Skip past random
-	currOffset += 32
-
-	currOffset++
-	if len(data) <= currOffset {
-		return out, errBufferTooSmall
+	if len(m.Cookie) > 255 {
+		return nil, errCookieTooLong
 	}
-	n := int(data[currOffset-1])
-	if len(data) <= currOffset+n {
-		return out, errBufferTooSmall
-	}
-	mimickedSessionID := append([]byte{}, data[currOffset:currOffset+n]...)
-	currOffset += len(mimickedSessionID)
 
-	currOffset++
-	if len(data) <= currOffset {
-		return out, errBufferTooSmall
-	}
-	n = int(data[currOffset-1])
-	if len(data) <= currOffset+n {
-		return out, errBufferTooSmall
-	}
-	mimickedCookie := append([]byte{}, data[currOffset:currOffset+n]...)
-	currOffset += len(mimickedCookie)
+	out[0] = m.Version.Major
+	out[1] = m.Version.Minor
+
+	rand := m.Random.MarshalFixed()
+	copy(out[2:], rand[:])
 
 	out = append(out, byte(len(m.SessionID)))
 	out = append(out, m.SessionID...)
 
 	out = append(out, byte(len(m.Cookie)))
 	out = append(out, m.Cookie...)
-
-	if len(data) <= currOffset {
-		return out, errBufferTooSmall
-	}
-	n = int(binary.BigEndian.Uint16(data[currOffset:]))
-	currOffset += 2
-	if len(data) <= currOffset+n {
-		return out, errBufferTooSmall
-	}
-	out = append(out, []byte{0x00, 0x00}...)
-	binary.BigEndian.PutUint16(out[len(out)-2:], uint16(n))
-
-	cipherSuiteIDs := append([]byte{}, data[currOffset:currOffset+n]...)
-	currOffset += len(cipherSuiteIDs)
-	out = append(out, cipherSuiteIDs...)
-
-	currOffset++
-	n = int(data[currOffset-1])
-	if len(data) <= currOffset+n {
-		return out, errBufferTooSmall
-	}
-	compressionMethods := append([]byte{}, data[currOffset:currOffset+n]...)
-	currOffset += len(compressionMethods)
-	out = append(out, byte(len(compressionMethods)))
-	out = append(out, compressionMethods...)
+	out = append(out, utils.EncodeCipherSuiteIDs(m.CipherSuiteIDs)...)
+	out = append(out, protocol.EncodeCompressionMethods(m.CompressionMethods)...)
 
 	extensions, err := utils.ExtensionMarshal(m.Extensions)
 	if err != nil {
@@ -251,11 +177,10 @@ func (m *MimickedClientHello) Unmarshal(data []byte) error {
 	currOffset += int(data[currOffset]) + 1
 
 	// Extensions
-	extensions, err := extension.Unmarshal(data[currOffset:])
+	extensions, err := MimicExtensionsUnmarshal(data[currOffset:])
 	if err != nil {
 		return err
 	}
 	m.Extensions = extensions
-
 	return nil
 }
