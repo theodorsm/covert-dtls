@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
-
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 )
 
@@ -22,50 +21,50 @@ var (
 )
 
 type KeyShareEntry struct {
-	group     uint16
-	keyLength uint16
-	key       []byte
+	Group     uint16
+	KeyLength uint16
+	Key       []byte
 }
 
 type KeyShare struct {
 	KeyShareEntries []KeyShareEntry
 }
 
-func (k KeyShare) TypeValue() extension.TypeValue {
+func (k *KeyShare) TypeValue() extension.TypeValue {
 	return KeyShareTypeValue
 }
 
 // Marshal with fresh random keys
-func (k KeyShare) Marshal() ([]byte, error) {
-	out := make([]byte, keyShareHeaderSize)
-
-	binary.BigEndian.AppendUint16(out, uint16(k.TypeValue()))
-
+func (k *KeyShare) Marshal() ([]byte, error) {
 	var tmp []byte
 	for _, entry := range k.KeyShareEntries {
-		tmp = append(tmp, byte(entry.group))
-		tmp = append(tmp, byte(entry.keyLength))
-		switch entry.group {
+		out := []byte{0x00, 0x00}
+		binary.BigEndian.PutUint16(out, uint16(entry.Group))
+		tmp = append(tmp, out...)
+		out = []byte{0x00, 0x00}
+		binary.BigEndian.PutUint16(out, uint16(entry.KeyLength))
+		tmp = append(tmp, out...)
+		switch entry.Group {
 		case uint16(KeyGroupX25519Value):
 			key, err := GenerateRandomX25519PublicKey()
 			if err != nil {
-				return []byte{}, nil
+				return []byte{}, err
 			}
-			if len(key.Bytes()) != int(entry.keyLength) {
-				return []byte{}, nil
+			if len(key.Bytes()) != int(entry.KeyLength) {
+				return []byte{}, errKeyLength
 			}
 			tmp = append(tmp, key.Bytes()...)
 		case uint16(KeyGroupP256Value):
-			key, err := GenerateRandomX25519PublicKey()
+			key, err := GenerateRandomP256PublicKey()
 			if err != nil {
-				return []byte{}, nil
+				return []byte{}, err
 			}
-			if len(key.Bytes()) != int(entry.keyLength) {
-				return []byte{}, nil
+			if len(key.Bytes()) != int(entry.KeyLength) {
+				return []byte{}, errKeyLength
 			}
 			tmp = append(tmp, key.Bytes()...)
 		default:
-			key := make([]byte, entry.keyLength)
+			key := make([]byte, entry.KeyLength)
 			_, err := rand.Read(key)
 			if err != nil {
 				return []byte{}, errRandomKey
@@ -74,32 +73,47 @@ func (k KeyShare) Marshal() ([]byte, error) {
 		}
 	}
 
-	binary.BigEndian.AppendUint16(out, uint16(len(tmp)))
-	binary.BigEndian.AppendUint16(out, uint16(len(tmp)-2))
-	out = append(tmp, out...)
+	var header []byte
+	out := []byte{0x00, 0x00}
+	binary.BigEndian.PutUint16(out, uint16(k.TypeValue()))
+	header = append(header, out...)
 
+	out = []byte{0x00, 0x00}
+	binary.BigEndian.PutUint16(out, uint16(len(tmp)+2))
+	header = append(header, out...)
+
+	out = []byte{0x00, 0x00}
+	binary.BigEndian.PutUint16(out, uint16(len(tmp)))
+	header = append(header, out...)
+
+	out = append(header, tmp...)
 	return out, nil
 }
 
-func (k KeyShare) Unmarshal(data []byte) error {
+func (k *KeyShare) Unmarshal(data []byte) error {
 	if len(data) <= keyShareHeaderSize {
 		return errBufferTooSmall
 	} else if extension.TypeValue(binary.BigEndian.Uint16(data)) != k.TypeValue() {
 		return errInvalidExtensionType
 	}
 
-	// TODO: verify
+	length := int(binary.BigEndian.Uint16(data[2:])) + 4 // offset = 2 byte type + 2 byte length
+	if length >= len(data[2:]) {
+		return errLengthMismatch
+	}
+	data = data[:length]
+
 	currOff := keyShareHeaderSize
 	for currOff < len(data) {
 		group := binary.BigEndian.Uint16(data[currOff:])
 		currOff += 2
-		if currOff < len(data) {
+		if currOff >= len(data) {
 			return errLengthMismatch
 		}
 		keyLength := binary.BigEndian.Uint16(data[currOff:])
-		k.KeyShareEntries = append(k.KeyShareEntries, KeyShareEntry{group: group, keyLength: keyLength})
+		keyShareEntry := KeyShareEntry{Group: group, KeyLength: keyLength}
+		k.KeyShareEntries = append(k.KeyShareEntries, keyShareEntry)
 		currOff += 2 + int(keyLength)
 	}
-
 	return nil
 }

@@ -2,7 +2,6 @@ package mimicry
 
 import (
 	"encoding/binary"
-
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
@@ -41,11 +40,13 @@ func MimicExtensionsUnmarshal(buf []byte) ([]extension.Extension, error) {
 		case extension.ServerNameTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ServerName{})
 		case extension.SupportedEllipticCurvesTypeValue:
-			err = unmarshalAndAppend(buf[offset:], &extension.SupportedEllipticCurves{})
+			// Mimic
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		case extension.SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
 		case extension.SupportedSignatureAlgorithmsTypeValue:
-			err = unmarshalAndAppend(buf[offset:], &extension.SupportedSignatureAlgorithms{})
+			// Mimic
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		case extension.UseSRTPTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.UseSRTP{})
 		case extension.ALPNTypeValue:
@@ -61,7 +62,7 @@ func MimicExtensionsUnmarshal(buf []byte) ([]extension.Extension, error) {
 			err = unmarshalAndAppend(buf[offset:], &utils.KeyShare{})
 		default:
 			// Unmarshal any mimicked unimplemented extension
-			// err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		}
 		if err != nil {
 			return nil, err
