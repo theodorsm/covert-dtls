@@ -1,4 +1,4 @@
-package randomize
+package mimicry
 
 import (
 	"encoding/binary"
@@ -6,8 +6,8 @@ import (
 	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
-// Unmarshal many extensions at once, will randomize use_srtp, signature_algorithms and supported_groups.
-func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
+// Unmarshal many extensions at once.
+func MimicExtensionsUnmarshal(buf []byte) ([]extension.Extension, error) {
 	switch {
 	case len(buf) == 0:
 		return []extension.Extension{}, nil
@@ -27,6 +27,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 			return err
 		}
 		extensions = append(extensions, e)
+
 		return nil
 	}
 
@@ -39,38 +40,29 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 		case extension.ServerNameTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ServerName{})
 		case extension.SupportedEllipticCurvesTypeValue:
-			e := &extension.SupportedEllipticCurves{}
-			err = e.Unmarshal(buf[offset:])
-			if err != nil {
-				return nil, err
-			}
-			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true)
-			extensions = append(extensions, e)
+			// Mimic
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		case extension.SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
 		case extension.SupportedSignatureAlgorithmsTypeValue:
-			e := &extension.SupportedSignatureAlgorithms{}
-			err = e.Unmarshal(buf[offset:])
-			if err != nil {
-				return nil, err
-			}
-			e.SignatureHashAlgorithms = utils.ShuffleRandomLength(e.SignatureHashAlgorithms, true)
-			extensions = append(extensions, e)
+			// Mimic
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		case extension.UseSRTPTypeValue:
-			e := &extension.UseSRTP{}
-			err = e.Unmarshal(buf[offset:])
-			if err != nil {
-				return nil, err
-			}
-			e.ProtectionProfiles = utils.ShuffleRandomLength(e.ProtectionProfiles, true)
-			extensions = append(extensions, e)
+			err = unmarshalAndAppend(buf[offset:], &extension.UseSRTP{})
 		case extension.ALPNTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ALPN{})
 		case extension.UseExtendedMasterSecretTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.UseExtendedMasterSecret{})
 		case extension.RenegotiationInfoTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.RenegotiationInfo{})
+		case extension.ConnectionIDTypeValue:
+			err = unmarshalAndAppend(buf[offset:], &extension.ConnectionID{})
+		case utils.KeyShareTypeValue:
+			// Unmarshal mimicked KeyShare
+			err = unmarshalAndAppend(buf[offset:], &utils.KeyShare{})
 		default:
+			// Unmarshal any mimicked unimplemented extension
+			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
 		}
 		if err != nil {
 			return nil, err
@@ -81,5 +73,6 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 		extensionLength := binary.BigEndian.Uint16(buf[offset+2:])
 		offset += (4 + int(extensionLength))
 	}
+
 	return extensions, nil
 }
