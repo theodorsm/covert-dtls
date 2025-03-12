@@ -19,6 +19,7 @@ This library was developed as part of a Master thesis: "*[Reducing distinguishab
 ## Features
 
 - Mimicking/replaying *ClientHello*
+  - key_share with fake keys (DTLS 1.3)
 - Randomization of *ClientHello* 
   - cipher suites: shuffle and random size
   - extensions: shuffle
