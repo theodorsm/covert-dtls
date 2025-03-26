@@ -119,6 +119,8 @@ async function buildDriver(browser = process.env.BROWSER || 'chrome', options = 
   firefoxOptions.setBinary(firefoxPath);
   firefoxOptions.setPreference('media.navigator.streams.fake', true);
   firefoxOptions.setPreference('media.navigator.permission.disabled', true);
+  // Force DTLS 1.2
+  firefoxOptions.setPreference('media.peerconnection.dtls.version.max', 771);
 
   const driver = new webdriver.Builder()
     .setChromeOptions(chromeOptions)

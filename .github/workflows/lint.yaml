@@ -18,9 +18,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Install libpcap
-        run: sudo apt install libpcap-dev
-
       - name: Setup go
         uses: actions/setup-go@v5
         with:
