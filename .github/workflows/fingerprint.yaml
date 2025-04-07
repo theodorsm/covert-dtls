@@ -112,6 +112,10 @@ jobs:
           skip-build-cache: true
           args: $GOLANGCI_LINT_EXRA_ARGS
 
+      - name: Run TestLoadFingerprints
+        working-directory: ./pkg/mimicry
+        run: go test -v --run TestLoadFingerprints
+
       - name: Commit fingerprints
         run: |
           git config user.name github-actions
