@@ -8,7 +8,7 @@ The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tp
 
 ## Fingerprint generation
 
-This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
+This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS 1.2 handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go). Some DTLS 1.3 fingerprints are found in [pkg/mimicry/fingerprints_13.go](pkg/mimicry/fingerprints_13.go)
 
 [main.go](main.go) contains a script for parsing pcaps, extracting the fingerprints and adding them to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
 
@@ -19,7 +19,7 @@ This library was developed as part of a Master thesis: "*[Reducing distinguishab
 ## Features
 
 - Mimicking/replaying *ClientHello*
-  - key_share with fake keys (DTLS 1.3)
+  - key_share with fake keys (DTLS 1.3). *This feature is highly experimental and unstable: do NOT expect handshake to be completed successfully*.
 - Randomization of *ClientHello* 
   - cipher suites: shuffle and random size
   - extensions: shuffle

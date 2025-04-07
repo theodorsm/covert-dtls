@@ -3,23 +3,19 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   linting:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-
-      - name: Install libpcap
-        run: sudo apt install libpcap-dev
 
       - name: Setup go
         uses: actions/setup-go@v5
@@ -29,6 +25,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60.1
-          skip-pkg-cache: true
-          skip-build-cache: true
+          version: v1.63.4
+          skip-cache: true
+          skip-save-cache: true

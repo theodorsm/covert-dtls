@@ -22,10 +22,9 @@ const ServerHelloType = 2
 const HelloVerifyRequest = 3
 const HandshakeType = 22
 
-func appendFingerprint(fingerprint string, version string) error {
+func appendFingerprint(file string, fingerprint string, version string) error {
 	var fileStrings []string
 
-	file := "./pkg/fingerprints/fingerprints.go"
 	readFile, err := os.Open(file)
 
 	if err != nil {
@@ -122,7 +121,14 @@ func parsePcap(path string, filename string) error {
 
 				// Only parse one client hello per handshake
 				if !parsedClientHello {
-					err = appendFingerprint(fingerprintString, version)
+					var file string
+					// DTLS 1.3
+					if strings.Contains(fingerprintString, "fefc") {
+						file = "./pkg/fingerprints/fingerprints_13.go"
+					} else {
+						file = "./pkg/fingerprints/fingerprints.go"
+					}
+					err = appendFingerprint(file, fingerprintString, version)
 					if err != nil {
 						return err
 					}

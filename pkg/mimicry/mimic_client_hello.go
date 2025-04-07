@@ -19,8 +19,7 @@ type MimickedClientHello struct {
 	Version                protocol.Version
 	Random                 handshake.Random
 	Cookie                 []byte
-
-	SessionID []byte
+	SessionID              []byte
 
 	CipherSuiteIDs         []uint16
 	CompressionMethods     []*protocol.CompressionMethod
@@ -64,18 +63,25 @@ func (m *MimickedClientHello) LoadRandomFingerprint() error {
 func (m *MimickedClientHello) Marshal() ([]byte, error) {
 	out := make([]byte, handshakeMessageClientHelloVariableWidthStart)
 
-	fingerprint := m.clientHelloFingerprint
-
-	if string(fingerprint) == "" {
+	if string(m.clientHelloFingerprint) == "" {
+		random := m.Random
+		sid := m.SessionID
+		cookie := m.Cookie
 		fingerprints := fingerprints.GetClientHelloFingerprints()
 		if len(fingerprints) < 1 {
 			return out, errNoFingerprints
 		}
-		fingerprint = fingerprints[len(fingerprints)-1]
-		m.LoadFingerprint(fingerprint)
+		fingerprint := fingerprints[len(fingerprints)-1]
+		err := m.LoadFingerprint(fingerprint)
+		if err != nil {
+			return out, err
+		}
+		m.Random = random
+		m.SessionID = sid
+		m.Cookie = cookie
 	}
 
-	data, err := hex.DecodeString(string(fingerprint))
+	data, err := hex.DecodeString(string(m.clientHelloFingerprint))
 	if err != nil {
 		return out, errHexstringDecode
 	}
