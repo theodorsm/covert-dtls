@@ -122,8 +122,8 @@ func parsePcap(path string, filename string) error {
 				// Only parse one client hello per handshake
 				if !parsedClientHello {
 					var file string
-					// DTLS 1.3
-					if strings.Contains(fingerprintString, "fefc") {
+					// supported_versions extension and DTLS 1.3
+					if strings.Contains(fingerprintString, "002b") && strings.Contains(fingerprintString, "fefc") {
 						file = "./pkg/fingerprints/fingerprints_13.go"
 					} else {
 						file = "./pkg/fingerprints/fingerprints.go"
