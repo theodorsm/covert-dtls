@@ -10,6 +10,8 @@ The censorship circumvention system [Snowflake](https://gitlab.torproject.org/tp
 
 This repo contains a workflow ([.github/workflows/fingerprint.yaml](.github/workflows/fingerprint.yaml)) for automatically generating fresh DTLS 1.2 handshakes (fingerprints) of new browser versions (Firefox and Chrome) by using a minimal WebRTC example application and Selenium. Fresh handshakes are captured each day and stored as pcap artifacts and the [fingerprints-captures](fingerprints-captures) directory. The pcaps are further parsed and a fingerprint is added to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go). Some DTLS 1.3 fingerprints are found in [pkg/mimicry/fingerprints_13.go](pkg/mimicry/fingerprints_13.go)
 
+**Note:** Both Chrome and Firefox uses DTLS 1.3 by default in WebRTC now. Firefox is currently configurable to force DTLS 1.2, but Chrome does not have this configuration available without re-compilation. Thus, this library can capture fresh DTLS 1.2 fingerprints of Firefox, and only DTLS 1.3 for Chrome. 
+
 [main.go](main.go) contains a script for parsing pcaps, extracting the fingerprints and adding them to [pkg/mimicry/fingerprints.go](pkg/mimicry/fingerprints.go)
 
 ## Validation
