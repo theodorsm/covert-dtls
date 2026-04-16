@@ -13,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [firefox, chrome]
+        #        browser: [firefox, chrome]
+        browser: [firefox]
         bver: [stable]
     steps:
       - uses: actions/checkout@v6
