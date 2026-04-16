@@ -60,18 +60,18 @@ func appendFingerprint(file string, fingerprint string, version string) error {
 		fileStrings = append(fileStrings, line)
 	}
 
-	readFile.Close()
+	readFile.Close() //nolint:errcheck
 
 	f, err := os.Create(file)
 	if err != nil {
-		f.Close()
+		f.Close() //nolint:errcheck
 		return err
 	}
 
 	for _, v := range fileStrings {
 		_, err = fmt.Fprintln(f, v)
 		if err != nil {
-			f.Close()
+			f.Close() //nolint:errcheck
 			return err
 		}
 	}

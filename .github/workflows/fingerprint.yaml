@@ -6,7 +6,6 @@ on:
   schedule:
     - cron: "0 1 * * *"
 
-
 jobs:
   handshake-capture:
     runs-on: ubuntu-latest
@@ -17,62 +16,62 @@ jobs:
         browser: [firefox, chrome]
         bver: [stable]
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
 
-    - name: Install tshark
-      run: sudo apt install -y tshark
+      - name: Install tshark
+        run: sudo apt install -y tshark
 
-    - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
 
-    - run: npm install
-      working-directory: .github/workflows/browser-test/
+      - run: npm install
+        working-directory: .github/workflows/browser-test/
 
-    - name: Remove preinstalled github chromedriver/geckodriver from $PATH
-      run: sudo rm /usr/bin/chromedriver /usr/bin/geckodriver
+      - name: Remove preinstalled github chromedriver/geckodriver from $PATH
+        run: sudo rm /usr/bin/chromedriver /usr/bin/geckodriver
 
-    - run: Xvfb :99 &
+      - run: Xvfb :99 &
 
-    - name: Install browser version
-      run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node download-browsers.js
-      working-directory: .github/workflows/browser-test/
+      - name: Install browser version
+        run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node download-browsers.js
+        working-directory: .github/workflows/browser-test/
 
-    - name: Get browser version
-      id: "browser"
-      run: echo "version=$(ls ./browsers/${{matrix.browser}} | sed -e 's/ /_/g' -e 's/\./_/g' -e 's/\-/_/g')" >> $GITHUB_OUTPUT
-      working-directory: .github/workflows/browser-test/
+      - name: Get browser version
+        id: "browser"
+        run: echo "version=$(ls ./browsers/${{matrix.browser}} | sed -e 's/ /_/g' -e 's/\./_/g' -e 's/\-/_/g')" >> $GITHUB_OUTPUT
+        working-directory: .github/workflows/browser-test/
 
-    - name: Create directory for pcaps
-      run: |
-        mkdir ./captures/
-        touch ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
-        sudo chown -R root:root ./captures
-        ls -lga ./captures
-    - name: Start tshark capture
-      run: sudo tshark -i any -w ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -f "udp" &
+      - name: Create directory for pcaps
+        run: |
+          mkdir ./captures/
+          touch ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
+          sudo chown -R root:root ./captures
+          ls -lga ./captures
+      - name: Start tshark capture
+        run: sudo tshark -i any -w ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -f "udp" &
 
-    - name: Run webrtc applications with jest/selenium
-      run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node_modules/.bin/jest --retries=3 interop
-      working-directory: .github/workflows/browser-test/
+      - name: Run webrtc applications with jest/selenium
+        run: BROWSER_A=${{matrix.browser}} BROWSER_B=${{matrix.browser}} BVER=${{matrix.bver}} DISPLAY=:99.0 node_modules/.bin/jest --retries=3 interop
+        working-directory: .github/workflows/browser-test/
 
-    - name: Kill tshark capture
-      run: sudo killall tshark 1> /dev/null 2> /dev/null
-      continue-on-error: true
+      - name: Kill tshark capture
+        run: sudo killall tshark 1> /dev/null 2> /dev/null
+        continue-on-error: true
 
-    - name: Filter DTLS handshake in pcap
-      run: sudo tshark -r ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -Y "dtls.handshake" -w ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
+      - name: Filter DTLS handshake in pcap
+        run: sudo tshark -r ./captures/full-capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap -Y "dtls.handshake" -w ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
 
-    - name: Archive pcap
-      uses: actions/upload-artifact@v4
-      with:
-        name: fingerprint-pcap-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
-        path: ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
+      - name: Archive pcap
+        uses: actions/upload-artifact@v4
+        with:
+          name: fingerprint-pcap-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
+          path: ./captures/capture-${{matrix.browser}}_${{steps.browser.outputs.version}}.pcap
 
   commit-fingerprints:
     needs: handshake-capture
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
@@ -82,7 +81,7 @@ jobs:
           mkdir -p ${{ runner.temp }}/fingerprints-captures
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: ${{ runner.temp }}/fingerprints-captures
           pattern: fingerprint-pcap-*
@@ -92,9 +91,9 @@ jobs:
         run: sudo apt install libpcap-dev
 
       - name: Setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: "1.24"
 
       - name: Run pcap fingerprint parser
         run: |
@@ -105,11 +104,11 @@ jobs:
         run: gofmt -s -w ./pkg/fingerprints/fingerprints.go ./pkg/fingerprints/fingerprints_13.go
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.60.1
-          skip-pkg-cache: true
-          skip-build-cache: true
+          version: v2.10.1
+          skip-cache: true
+          skip-save-cache: true
           args: $GOLANGCI_LINT_EXRA_ARGS
 
       - name: Run TestLoadFingerprints
