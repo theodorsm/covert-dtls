@@ -83,3 +83,23 @@ cfg := &dtls.Config{
 
 // Use config with connection...
 ```
+
+## Get fingerprints from the captures
+
+It can be useful to get the JA3/JA4 fingerprints for the captures in this repo.
+This can be done using `tshark` and `jq`: 
+
+
+```bash
+#!/bin/bash
+
+for file in ./fingerprints-captures/*; do
+  echo "$(basename $file):"
+  ja3="$(tshark -r "$file" -Y "dtls.handshake.type == 1" -T json | jq '.[] | ._source.layers.dtls."dtls.record"."dtls.handshake"."dtls.handshake.ja3"' | tr -d '"' | tr '\n' ' ')"
+  ja4="$(tshark -r "$file" -Y "dtls.handshake.type == 1" -T json | jq '.[] | ._source.layers.dtls."dtls.record"."dtls.handshake"."dtls.handshake.ja4"' | tr -d '"' | tr '\n' ' ')"
+  printf "ja3: ${ja3}\n"
+  printf "ja4: ${ja4}\n"
+  echo ""
+done
+```
+
