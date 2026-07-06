@@ -21,6 +21,11 @@ type MimickedClientHello struct {
 	Cookie                 []byte
 	SessionID              []byte
 
+	// Rand is the randomness source used to select a fingerprint in
+	// LoadRandomFingerprint. When nil, a crypto/rand-backed source is used.
+	// Supply a seeded Rand to deterministically select the same fingerprint.
+	Rand utils.Rand
+
 	CipherSuiteIDs         []uint16
 	CompressionMethods     []*protocol.CompressionMethod
 	Extensions             []extension.Extension
@@ -51,11 +56,20 @@ func (m *MimickedClientHello) LoadFingerprint(fingerprint fingerprints.ClientHel
 	return err
 }
 
-// Loads a random fingerprint to mimic
+// Loads a random fingerprint to mimic. When Rand is set, the selection is
+// deterministic for a given seed.
 func (m *MimickedClientHello) LoadRandomFingerprint() error {
 	allFingerprints := fingerprints.GetClientHelloFingerprints()
 	length := len(allFingerprints)
-	randomFingerprint := allFingerprints[utils.RandRange(0, length-1)]
+	if length == 0 {
+		return errNoFingerprints
+	}
+
+	r := m.Rand
+	if r == nil {
+		r = utils.DefaultRand()
+	}
+	randomFingerprint := allFingerprints[r.Intn(length)]
 	return m.LoadFingerprint(randomFingerprint)
 }
 
