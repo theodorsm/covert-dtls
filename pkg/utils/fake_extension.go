@@ -26,7 +26,9 @@ func (f *FakeExt) Unmarshal(data []byte) error {
 	f.FakeTypeValue = extension.TypeValue(binary.BigEndian.Uint16(data))
 
 	length := int(binary.BigEndian.Uint16(data[2:])) + 4 // offset = 2 byte type + 2 byte length
-	if length >= len(data[2:]) {
+	// A valid extension announces its exact length, so the declared length
+	// must match the buffer holding this single extension.
+	if length != len(data) {
 		return errLengthMismatch
 	}
 	data = data[:length]
