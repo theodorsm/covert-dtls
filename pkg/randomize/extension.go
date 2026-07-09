@@ -8,8 +8,8 @@ import (
 )
 
 // RandomizeExtensionUnmarshal unmarshals many extensions at once, randomizing
-// use_srtp, signature_algorithms and supported_groups using r. Passing a
-// seeded Rand makes the randomization reproducible.
+// use_srtp, signature_algorithms, supported_groups and ec_point_formats using
+// r. Passing a seeded Rand makes the randomization reproducible.
 func RandomizeExtensionUnmarshal(buf []byte, r utils.Rand) ([]extension.Extension, error) {
 	switch {
 	case len(buf) == 0:
@@ -50,7 +50,13 @@ func RandomizeExtensionUnmarshal(buf []byte, r utils.Rand) ([]extension.Extensio
 			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true, r)
 			extensions = append(extensions, e)
 		case extension.SupportedPointFormatsTypeValue:
-			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
+			e := &extension.SupportedPointFormats{}
+			err = e.Unmarshal(buf[offset:])
+			if err != nil {
+				return nil, err
+			}
+			e.PointFormats = utils.ShuffleRandomLength(e.PointFormats, true, r)
+			extensions = append(extensions, e)
 		case extension.SupportedSignatureAlgorithmsTypeValue:
 			e := &extension.SupportedSignatureAlgorithms{}
 			err = e.Unmarshal(buf[offset:])

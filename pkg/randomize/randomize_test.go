@@ -68,3 +68,47 @@ func TestRandomizedClientHelloDefaultRand(t *testing.T) {
 		t.Fatalf("Marshal with default Rand failed: %v", err)
 	}
 }
+
+// A seeded Rand must make the ServerHello extension ordering reproducible.
+func TestRandomizedServerHelloDeterministic(t *testing.T) {
+	build := func() handshake.MessageServerHello {
+		return handshake.MessageServerHello{
+			Version: protocol.Version{Major: 0xfe, Minor: 0xfd},
+			Extensions: []extension.Extension{
+				&extension.RenegotiationInfo{},
+				&extension.UseExtendedMasterSecret{},
+				&extension.ALPN{ProtocolNameList: []string{"h2"}},
+				&extension.UseSRTP{
+					ProtectionProfiles: []extension.SRTPProtectionProfile{
+						extension.SRTP_AEAD_AES_128_GCM,
+					},
+				},
+			},
+		}
+	}
+
+	order := func(seed int64) []uint16 {
+		m := &RandomizedMessageServerHello{Rand: rand.New(rand.NewSource(seed))} //nolint:gosec
+		msg := m.Hook(build())
+		sh, ok := msg.(*handshake.MessageServerHello)
+		if !ok {
+			t.Fatalf("Hook returned unexpected type %T", msg)
+		}
+		types := make([]uint16, len(sh.Extensions))
+		for i, e := range sh.Extensions {
+			types[i] = uint16(e.TypeValue())
+		}
+		return types
+	}
+
+	first := order(99)
+	second := order(99)
+	if len(first) != len(second) {
+		t.Fatalf("seeded runs produced different extension counts")
+	}
+	for i := range first {
+		if first[i] != second[i] {
+			t.Fatalf("seeded ServerHello ordering diverged at %d: %v vs %v", i, first, second)
+		}
+	}
+}
