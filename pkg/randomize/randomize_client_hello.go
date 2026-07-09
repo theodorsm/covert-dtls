@@ -3,11 +3,23 @@ package randomize
 import (
 	"encoding/binary"
 
+	"github.com/pion/dtls/v3"
 	"github.com/pion/dtls/v3/pkg/protocol"
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/pion/dtls/v3/pkg/protocol/handshake"
 	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
+
+// eccCipherSuiteIDs are the ECDHE-ECDSA cipher suites supported by pion/dtls.
+// At least one must be offered for pion's default ECDSA P-256 certificates to
+// complete the handshake.
+var eccCipherSuiteIDs = []uint16{
+	uint16(dtls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256),
+	uint16(dtls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384),
+	uint16(dtls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA),
+	uint16(dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM),
+	uint16(dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8),
+}
 
 /*
 RandomizedMessageClientHello
@@ -60,6 +72,10 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	}
 	m.CipherSuiteIDs = utils.ShuffleRandomLength(m.CipherSuiteIDs, true, r)
 
+	// Ensure at least one ECDHE-ECDSA cipher suite survives truncation so
+	// pion's default ECDSA P-256 certificates can complete the handshake.
+	ensureECCCipherSuite(&m.CipherSuiteIDs, r)
+
 	hasALPN := false
 	for _, e := range m.Extensions {
 		if e.TypeValue() == extension.TypeValue(extension.ALPNTypeValue) {
@@ -75,6 +91,26 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 
 	m.Extensions = utils.ShuffleRandomLength(m.Extensions, false, r)
 	return m
+}
+
+// ensureECCCipherSuite guarantees that at least one ECDHE-ECDSA cipher suite is
+// present in suites. If none survived truncation, one is chosen with r,
+// appended, and the list re-shuffled so the addition is not always last.
+func ensureECCCipherSuite(suites *[]uint16, r utils.Rand) {
+	for _, id := range *suites {
+		for _, eccID := range eccCipherSuiteIDs {
+			if id == eccID {
+				return
+			}
+		}
+	}
+
+	picked := eccCipherSuiteIDs[r.Intn(len(eccCipherSuiteIDs))]
+	*suites = append(*suites, picked)
+
+	r.Shuffle(len(*suites), func(i, j int) {
+		(*suites)[i], (*suites)[j] = (*suites)[j], (*suites)[i]
+	})
 }
 
 // Marshal encodes the Handshake
