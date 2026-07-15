@@ -32,21 +32,30 @@ func MimicExtensionsUnmarshal(buf []byte) ([]extension.Extension, error) {
 	}
 
 	for offset := 2; offset < len(buf); {
-		if len(buf) < (offset + 2) {
+		if len(buf) < (offset + 4) {
 			return nil, errBufferTooSmall
 		}
+		extensionLength := int(binary.BigEndian.Uint16(buf[offset+2:]))
+		end := offset + 4 + extensionLength
+		if end > len(buf) {
+			return nil, errBufferTooSmall
+		}
+		// FakeExt validates that its declared length matches the buffer it is
+		// given, so it must receive exactly this extension's bytes rather than
+		// the remainder of the buffer.
+		fakeExtData := buf[offset:end]
 		var err error
 		switch extension.TypeValue(binary.BigEndian.Uint16(buf[offset:])) {
 		case extension.ServerNameTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ServerName{})
 		case extension.SupportedEllipticCurvesTypeValue:
 			// Mimic
-			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
+			err = unmarshalAndAppend(fakeExtData, &utils.FakeExt{})
 		case extension.SupportedPointFormatsTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
 		case extension.SupportedSignatureAlgorithmsTypeValue:
 			// Mimic
-			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
+			err = unmarshalAndAppend(fakeExtData, &utils.FakeExt{})
 		case extension.UseSRTPTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.UseSRTP{})
 		case extension.ALPNTypeValue:
@@ -62,16 +71,12 @@ func MimicExtensionsUnmarshal(buf []byte) ([]extension.Extension, error) {
 			err = unmarshalAndAppend(buf[offset:], &utils.KeyShare{})
 		default:
 			// Unmarshal any mimicked unimplemented extension
-			err = unmarshalAndAppend(buf[offset:], &utils.FakeExt{})
+			err = unmarshalAndAppend(fakeExtData, &utils.FakeExt{})
 		}
 		if err != nil {
 			return nil, err
 		}
-		if len(buf) < (offset + 4) {
-			return nil, errBufferTooSmall
-		}
-		extensionLength := binary.BigEndian.Uint16(buf[offset+2:])
-		offset += (4 + int(extensionLength))
+		offset = end
 	}
 
 	return extensions, nil
