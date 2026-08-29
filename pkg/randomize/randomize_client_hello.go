@@ -18,6 +18,11 @@ type RandomizedMessageClientHello struct {
 	Cookie     []byte
 	RandomALPN bool // Add a random ALPN if there is none in the hooked message
 
+	// Rand is the randomness source used for all randomization choices. When
+	// nil, a crypto/rand-backed source is used. Supply a seeded Rand to
+	// deterministically replay the same randomized ClientHello.
+	Rand utils.Rand
+
 	SessionID []byte
 
 	CipherSuiteIDs     []uint16
@@ -32,17 +37,28 @@ func (m RandomizedMessageClientHello) Type() handshake.Type {
 	return handshake.TypeClientHello
 }
 
+// rand returns the configured randomness source, or a crypto/rand-backed
+// default when none was set.
+func (m *RandomizedMessageClientHello) rand() utils.Rand {
+	if m.Rand == nil {
+		return utils.DefaultRand()
+	}
+	return m.Rand
+}
+
 // ClientHello Hook for randomization
 func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) handshake.Message {
+	r := m.rand()
+
 	buf, err := ch.Marshal()
 	if err != nil {
 		return &ch
 	}
-	err = m.Unmarshal(buf)
+	err = m.unmarshalWithRand(buf, r)
 	if err != nil {
 		return &ch
 	}
-	m.CipherSuiteIDs = utils.ShuffleRandomLength(m.CipherSuiteIDs, true)
+	m.CipherSuiteIDs = utils.ShuffleRandomLength(m.CipherSuiteIDs, true, r)
 
 	hasALPN := false
 	for _, e := range m.Extensions {
@@ -52,12 +68,12 @@ func (m *RandomizedMessageClientHello) Hook(ch handshake.MessageClientHello) han
 	}
 	if !hasALPN && m.RandomALPN {
 		e := &extension.ALPN{
-			ProtocolNameList: []string{utils.ALPNS[utils.RandRange(0, len(utils.ALPNS)-1)]},
+			ProtocolNameList: []string{utils.ALPNS[r.Intn(len(utils.ALPNS))]},
 		}
 		m.Extensions = append(m.Extensions, e)
 	}
 
-	m.Extensions = utils.ShuffleRandomLength(m.Extensions, false)
+	m.Extensions = utils.ShuffleRandomLength(m.Extensions, false, r)
 	return m
 }
 
@@ -89,8 +105,15 @@ func (m *RandomizedMessageClientHello) Marshal() ([]byte, error) {
 	return append(out, extensions...), nil
 }
 
-// Unmarshal populates the message from encoded data
+// Unmarshal populates the message from encoded data, randomizing extensions
+// with a crypto/rand-backed source or, when set, the configured Rand.
 func (m *RandomizedMessageClientHello) Unmarshal(data []byte) error {
+	return m.unmarshalWithRand(data, m.rand())
+}
+
+// unmarshalWithRand populates the message from encoded data, using r for
+// extension randomization.
+func (m *RandomizedMessageClientHello) unmarshalWithRand(data []byte, r utils.Rand) error {
 	if len(data) < 2+handshake.RandomLength {
 		return errBufferTooSmall
 	}
@@ -156,7 +179,7 @@ func (m *RandomizedMessageClientHello) Unmarshal(data []byte) error {
 	currOffset += int(data[currOffset]) + 1
 
 	// Extensions
-	extensions, err := RandomizeExtensionUnmarshal(data[currOffset:])
+	extensions, err := RandomizeExtensionUnmarshal(data[currOffset:], r)
 	if err != nil {
 		return err
 	}
