@@ -2,12 +2,15 @@ package randomize
 
 import (
 	"encoding/binary"
+
 	"github.com/pion/dtls/v3/pkg/protocol/extension"
 	"github.com/theodorsm/covert-dtls/pkg/utils"
 )
 
-// Unmarshal many extensions at once, will randomize use_srtp, signature_algorithms and supported_groups.
-func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
+// RandomizeExtensionUnmarshal unmarshals many extensions at once, randomizing
+// use_srtp, signature_algorithms, supported_groups and ec_point_formats using
+// r. Passing a seeded Rand makes the randomization reproducible.
+func RandomizeExtensionUnmarshal(buf []byte, r utils.Rand) ([]extension.Extension, error) {
 	switch {
 	case len(buf) == 0:
 		return []extension.Extension{}, nil
@@ -44,17 +47,23 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true)
+			e.EllipticCurves = utils.ShuffleRandomLength(e.EllipticCurves, true, r)
 			extensions = append(extensions, e)
 		case extension.SupportedPointFormatsTypeValue:
-			err = unmarshalAndAppend(buf[offset:], &extension.SupportedPointFormats{})
+			e := &extension.SupportedPointFormats{}
+			err = e.Unmarshal(buf[offset:])
+			if err != nil {
+				return nil, err
+			}
+			e.PointFormats = utils.ShuffleRandomLength(e.PointFormats, true, r)
+			extensions = append(extensions, e)
 		case extension.SupportedSignatureAlgorithmsTypeValue:
 			e := &extension.SupportedSignatureAlgorithms{}
 			err = e.Unmarshal(buf[offset:])
 			if err != nil {
 				return nil, err
 			}
-			e.SignatureHashAlgorithms = utils.ShuffleRandomLength(e.SignatureHashAlgorithms, true)
+			e.SignatureHashAlgorithms = utils.ShuffleRandomLength(e.SignatureHashAlgorithms, true, r)
 			extensions = append(extensions, e)
 		case extension.UseSRTPTypeValue:
 			e := &extension.UseSRTP{}
@@ -62,7 +71,7 @@ func RandomizeExtensionUnmarshal(buf []byte) ([]extension.Extension, error) {
 			if err != nil {
 				return nil, err
 			}
-			e.ProtectionProfiles = utils.ShuffleRandomLength(e.ProtectionProfiles, true)
+			e.ProtectionProfiles = utils.ShuffleRandomLength(e.ProtectionProfiles, true, r)
 			extensions = append(extensions, e)
 		case extension.ALPNTypeValue:
 			err = unmarshalAndAppend(buf[offset:], &extension.ALPN{})
